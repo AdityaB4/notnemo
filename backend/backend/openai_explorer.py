@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import logging
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any
 
@@ -8,6 +10,8 @@ import braintrust
 from openai import AsyncOpenAI
 
 from backend.config import Settings
+
+logger = logging.getLogger(__name__)
 from backend.models import (
     BranchOutcome,
     ExplorerBranchInput,
@@ -87,6 +91,36 @@ class OpenAIResponsesClient:
             raise
         except Exception as exc:
             raise OpenAIResponseError(f"OpenAI Responses API error: {exc}") from exc
+
+    async def create_response_streaming(
+        self,
+        payload: dict[str, Any],
+        on_reasoning_delta: Callable[[str, int, int], Awaitable[None]] | None = None,
+    ) -> dict[str, Any]:
+        """Stream an OpenAI Responses API call, collecting reasoning deltas along the way.
+
+        Braintrust's wrap_openai automatically traces streaming calls (TTFT, tokens, output).
+        """
+        if self._client is None:
+            raise OpenAIResponseError("OPENAI_API_KEY is not configured.")
+        try:
+            stream = await self._client.responses.create(**payload, stream=True)
+            completed_response = None
+            async for event in stream:
+                if event.type == "response.reasoning_summary_text.delta":
+                    if on_reasoning_delta is not None:
+                        await on_reasoning_delta(
+                            event.delta, event.output_index, event.summary_index
+                        )
+                elif event.type == "response.completed":
+                    completed_response = event.response
+            if completed_response is None:
+                raise OpenAIResponseError("Stream ended without response.completed event")
+            return completed_response.model_dump(mode="json")
+        except OpenAIResponseError:
+            raise
+        except Exception as exc:
+            raise OpenAIResponseError(f"OpenAI Responses API streaming error: {exc}") from exc
 
 
 def build_initial_input(branch: ExplorerBranchInput) -> list[dict[str, Any]]:

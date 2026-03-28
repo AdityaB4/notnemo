@@ -12,6 +12,7 @@ EventType = Literal[
     "seeds.ready",
     "domains.ready",
     "branch.started",
+    "branch.reasoning_delta",
     "tinyfish.progress",
     "result.item",
     "branch.completed",
@@ -319,6 +320,18 @@ class DomainsReadyEvent(StreamEventBase):
 class BranchStartedEvent(StreamEventBase):
     event_type: Literal["branch.started"] = "branch.started"
     payload: BranchStartedPayload
+
+
+class BranchReasoningDeltaPayload(StrictModel):
+    delta: str
+    output_index: int
+    summary_index: int
+    iteration: int
+
+
+class BranchReasoningDeltaEvent(StreamEventBase):
+    event_type: Literal["branch.reasoning_delta"] = "branch.reasoning_delta"
+    payload: BranchReasoningDeltaPayload
 
 
 class TinyFishProgressEvent(StreamEventBase):

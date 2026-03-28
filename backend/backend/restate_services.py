@@ -561,11 +561,20 @@ async def _run_openai_loop_inner(
     for iteration in range(settings.explorer_max_iterations):
         payload = build_response_payload(settings, response_input, previous_response_id)
 
-        # wrap_openai auto-traces each responses.create() call with full
-        # input/output/usage, nested under the current explorer_loop span.
+        # Stream the OpenAI response so we can capture reasoning deltas in
+        # real-time.  Braintrust's wrap_openai auto-traces streaming calls
+        # (TTFT, token counts, full output) under the current explorer_loop span.
+        reasoning_deltas: list[tuple[str, int, int]] = []
+
+        async def _on_reasoning_delta(delta: str, output_index: int, summary_index: int) -> None:
+            reasoning_deltas.append((delta, output_index, summary_index))
+
         try:
             response = await ctx.run_typed(
-                "openai-response", openai_client.create_response, payload=payload
+                "openai-response",
+                openai_client.create_response_streaming,
+                payload=payload,
+                on_reasoning_delta=_on_reasoning_delta,
             )
         except OpenAIResponseError as exc:
             fallback = build_fallback_outcome(
@@ -585,11 +594,48 @@ async def _run_openai_loop_inner(
 
         previous_response_id = response.get("id")
 
+        # Emit reasoning deltas to frontend via SSE and log to Braintrust.
+        # On Restate replay run_typed returns the journaled value and the
+        # callback is never invoked, so reasoning_deltas stays empty -- which
+        # is fine because the events were already persisted on first execution.
+        if reasoning_deltas:
+            for delta_text, out_idx, sum_idx in reasoning_deltas:
+                await callbacks.append_event(
+                    "branch.reasoning_delta",
+                    {
+                        "delta": delta_text,
+                        "output_index": out_idx,
+                        "summary_index": sum_idx,
+                        "iteration": iteration,
+                    },
+                )
+            full_reasoning = "".join(d[0] for d in reasoning_deltas)
+            parent_span.log(
+                metadata={
+                    f"reasoning_summary_iteration_{iteration}": full_reasoning,
+                },
+            )
+
+        callbacks.runtime.web_search_seen = callbacks.runtime.web_search_seen or saw_web_search(
+            response
+        )
+
         function_calls = extract_function_calls(response)
         if has_web_fetch_call(function_calls):
             callbacks.runtime.web_search_seen = True
 
         if function_calls:
+            # Log the model's tool-call decisions to Braintrust so they're
+            # visible in the trace as a child span of the explorer loop.
+            parent_span.log(
+                metadata={
+                    f"tool_calls_iteration_{iteration}": [
+                        {"name": tc.name, "call_id": tc.call_id, "arguments": tc.arguments}
+                        for tc in function_calls
+                    ],
+                },
+            )
+
             tool_outputs: list[dict[str, Any] | None] = [None] * len(function_calls)
             pending_invocations: list[PendingToolInvocation] = []
 
@@ -652,7 +698,7 @@ async def _run_openai_loop_inner(
                             focus_query=tool_call.arguments["focus_query"],
                             urls=tool_call.arguments.get("urls", []),
                             rationale=tool_call.arguments["rationale"],
-                            trace_parent=tool_span.export(),
+                            trace_parent=parent_span.export(),
                         )
                         pending_invocations.append(
                             PendingToolInvocation(
@@ -671,6 +717,16 @@ async def _run_openai_loop_inner(
                     }
 
             for invocation in pending_invocations:
+                # Wrap each tool execution in a Braintrust span so it appears
+                # as a child of the explorer_loop trace with timing + output.
+                tool_span = parent_span.start_span(
+                    name=f"tool:{invocation.name}",
+                    input={
+                        "call_id": invocation.call_id,
+                        "tool": invocation.name,
+                        "iteration": iteration,
+                    },
+                )
                 try:
                     if invocation.name == "web_fetch":
                         fetch_result = await invocation.future
@@ -692,8 +748,12 @@ async def _run_openai_loop_inner(
                             "status": "rejected",
                             "reason": f"Unsupported tool {invocation.name}",
                         }
+                    tool_span.log(output=output)
                 except Exception as exc:
                     output = {"status": "error", "message": str(exc)}
+                    tool_span.log(output=output)
+                finally:
+                    tool_span.end()
 
                 tool_outputs[invocation.index] = {
                     "type": "function_call_output",
