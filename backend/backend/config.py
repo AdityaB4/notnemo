@@ -57,6 +57,8 @@ class Settings:
     explorer_enum_tlds: tuple[str, ...]
     explorer_max_iterations: int
     openapi_server_url: str | None
+    braintrust_api_key: str | None
+    braintrust_project: str
 
 
 @lru_cache(maxsize=1)
@@ -86,4 +88,6 @@ def get_settings() -> Settings:
         explorer_enum_tlds=_env_csv("EXPLORER_ENUM_TLDS", "com,org,net,co"),
         explorer_max_iterations=_env_int("EXPLORER_MAX_ITERATIONS", 6),
         openapi_server_url=os.environ.get("OPENAPI_SERVER_URL"),
+        braintrust_api_key=os.environ.get("BRAINTRUST_API_KEY"),
+        braintrust_project=os.environ.get("BRAINTRUST_PROJECT", "notnemo"),
     )

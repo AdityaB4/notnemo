@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import dataclass, field
 from typing import Any
 
+import braintrust
 import restate
 
 from backend.config import get_settings
@@ -26,8 +28,6 @@ from backend.models import (
     SearchResult,
     SearchResultDraft,
     SearchSnapshotResponse,
-    TinyFishProgressPayload,
-    TinyFishTraceEvent,
 )
 from backend.normalize import normalize_query
 from backend.openai_explorer import (
@@ -44,16 +44,10 @@ from backend.seeds import MockSeedUrlRepository
 from backend.tinyfish import TinyFishClient, TinyFishError
 from backend.utils import canonicalize_url, stable_id, to_jsonable, utc_now
 
+logger = logging.getLogger(__name__)
+
 search_job_state = restate.VirtualObject("SearchJobState")
 explorer_workflow = restate.Workflow("ExplorerWorkflow")
-greeter = restate.Service("Greeter")
-
-
-@greeter.handler()
-async def greet(ctx: restate.Context, name: str) -> str:
-    return f"Hello, {name}!"
-
-
 async def _get_state_list(ctx: restate.ObjectSharedContext | restate.ObjectContext, key: str) -> list[Any]:
     return await ctx.get(key, type_hint=list) or []
 
@@ -269,7 +263,6 @@ async def get_events_since(
 class BranchRuntimeState:
     web_search_seen: bool = False
     child_counter: int = 0
-    tinyfish_counter: int = 0
 
 
 @dataclass(slots=True)
@@ -346,6 +339,47 @@ async def _run_openai_loop(
     openai_client = OpenAIResponsesClient(settings)
     tinyfish_client = TinyFishClient(settings)
 
+    span = braintrust.start_span(
+        name="explorer_loop",
+        input={
+            "job_id": branch.job_id,
+            "branch_id": branch.branch_id,
+            "depth": branch.depth,
+            "query": branch.normalized_query.query_text,
+            "keywords": branch.normalized_query.keywords,
+            "candidate_urls": branch.candidate_urls[:10],
+        },
+    )
+
+    try:
+        summary = await _run_openai_loop_inner(
+            ctx, branch, settings, callbacks, openai_client, tinyfish_client, span,
+        )
+        span.log(
+            output={
+                "branch_id": summary.branch_id,
+                "result_count": summary.result_count,
+                "coverage_assessment": summary.coverage_assessment,
+                "notes": summary.notes,
+            },
+        )
+        return summary
+    except Exception as exc:
+        span.log(output={"error": str(exc)})
+        raise
+    finally:
+        span.end()
+
+
+async def _run_openai_loop_inner(
+    ctx: restate.WorkflowContext,
+    branch: ExplorerBranchInput,
+    settings,
+    callbacks: WorkflowCallbacks,
+    openai_client: OpenAIResponsesClient,
+    tinyfish_client: TinyFishClient,
+    parent_span: braintrust.Span,
+) -> BranchSummary:
     if not settings.openai_api_key:
         fallback = build_fallback_outcome(
             branch,
@@ -365,13 +399,37 @@ async def _run_openai_loop(
     previous_response_id: str | None = None
     response_input = build_initial_input(branch)
 
-    for _ in range(settings.explorer_max_iterations):
+    for iteration in range(settings.explorer_max_iterations):
         payload = build_response_payload(settings, response_input, previous_response_id)
+
+        llm_span = parent_span.start_span(
+            name="openai_response",
+            span_attributes={"type": "llm"},
+            input={
+                "model": settings.openai_explorer_model,
+                "iteration": iteration,
+                "input_length": len(payload.get("input", [])),
+            },
+        )
         try:
             response = await ctx.run_typed(
                 "openai-response", openai_client.create_response, payload=payload
             )
+            llm_span.log(
+                output={
+                    "response_id": response.get("id"),
+                    "output_items": len(response.get("output", [])),
+                    "has_tool_calls": bool(extract_function_calls(response)),
+                    "has_web_search": saw_web_search(response),
+                },
+                metadata={
+                    "model": response.get("model"),
+                    "usage": response.get("usage"),
+                },
+            )
         except OpenAIResponseError as exc:
+            llm_span.log(output={"error": str(exc)})
+            llm_span.end()
             fallback = build_fallback_outcome(
                 branch,
                 note=f"OpenAI request failed, using fallback candidates instead: {exc}",
@@ -386,6 +444,9 @@ async def _run_openai_loop(
                 result_count=len(fallback.results[: branch.limits.max_results]),
                 follow_up_queries=fallback.follow_up_queries,
             )
+        finally:
+            llm_span.end()
+
         previous_response_id = response.get("id")
         callbacks.runtime.web_search_seen = callbacks.runtime.web_search_seen or saw_web_search(
             response
@@ -395,6 +456,11 @@ async def _run_openai_loop(
         if function_calls:
             tool_outputs: list[dict[str, Any]] = []
             for tool_call in function_calls:
+                tool_span = parent_span.start_span(
+                    name=f"tool_{tool_call.name}",
+                    span_attributes={"type": "tool"},
+                    input={"call_id": tool_call.call_id, "arguments": tool_call.arguments},
+                )
                 if tool_call.name == "tinyfish_scrape":
                     if not callbacks.runtime.web_search_seen:
                         output = {
@@ -405,36 +471,12 @@ async def _run_openai_loop(
                         try:
                             url = tool_call.arguments["url"]
                             goal = tool_call.arguments["extraction_goal"]
-                            callbacks.runtime.tinyfish_counter = 0
-
-                            async def on_progress(trace_event: TinyFishTraceEvent) -> None:
-                                callbacks.runtime.tinyfish_counter += 1
-                                payload_model = TinyFishProgressPayload(
-                                    url=canonicalize_url(url),
-                                    purpose=trace_event.purpose,
-                                    trace=trace_event,
-                                )
-                                await ctx.object_call(
-                                    append_event,
-                                    key=branch.job_id,
-                                    arg=EventAppendRequest(
-                                        event_type="tinyfish.progress",
-                                        event_id=stable_id(
-                                            branch.job_id,
-                                            branch.branch_id,
-                                            "tinyfish.progress",
-                                            url,
-                                            callbacks.runtime.tinyfish_counter,
-                                        ),
-                                        branch_id=branch.branch_id,
-                                        payload=payload_model,
-                                    ),
-                                )
-
-                            artifact = await tinyfish_client.run_scrape(
-                                url,
-                                goal,
-                                on_progress=on_progress if branch.stream_tinyfish else None,
+                            scrape_name = f"tinyfish-scrape-{stable_id(url, goal)}"
+                            artifact = await ctx.run_typed(
+                                scrape_name,
+                                tinyfish_client.run_scrape,
+                                url=url,
+                                goal=goal,
                             )
                             output = {
                                 "status": "completed",
@@ -458,6 +500,8 @@ async def _run_openai_loop(
                 else:
                     output = {"status": "rejected", "reason": f"Unsupported tool {tool_call.name}"}
 
+                tool_span.log(output=output)
+                tool_span.end()
                 tool_outputs.append(
                     {
                         "type": "function_call_output",
@@ -614,4 +658,4 @@ async def run_explorer(ctx: restate.WorkflowContext, branch: ExplorerBranchInput
         raise
 
 
-SERVICES = [greeter, search_job_state, explorer_workflow]
+SERVICES = [search_job_state, explorer_workflow]
