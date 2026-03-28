@@ -5,7 +5,7 @@ REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
 
 # Conductor provides CONDUCTOR_ROOT_PATH pointing to the repo root.
 # The .env.local there is shared across all workspaces.
-ENV_SOURCE="${CONDUCTOR_ROOT_PATH:?CONDUCTOR_ROOT_PATH not set}/.env.local"
+ENV_SOURCE="${CONDUCTOR_ROOT_PATH:?CONDUCTOR_ROOT_PATH not set}/backend/.env.local"
 
 if [ ! -f "$ENV_SOURCE" ]; then
   echo "Error: $ENV_SOURCE not found. Create it first with your secrets."
