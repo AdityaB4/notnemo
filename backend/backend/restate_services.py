@@ -28,8 +28,6 @@ from backend.models import (
     SearchResult,
     SearchResultDraft,
     SearchSnapshotResponse,
-    TinyFishProgressPayload,
-    TinyFishTraceEvent,
 )
 from backend.normalize import normalize_query
 from backend.openai_explorer import (
@@ -50,14 +48,6 @@ logger = logging.getLogger(__name__)
 
 search_job_state = restate.VirtualObject("SearchJobState")
 explorer_workflow = restate.Workflow("ExplorerWorkflow")
-greeter = restate.Service("Greeter")
-
-
-@greeter.handler()
-async def greet(ctx: restate.Context, name: str) -> str:
-    return f"Hello, {name}!"
-
-
 async def _get_state_list(ctx: restate.ObjectSharedContext | restate.ObjectContext, key: str) -> list[Any]:
     return await ctx.get(key, type_hint=list) or []
 
@@ -273,7 +263,6 @@ async def get_events_since(
 class BranchRuntimeState:
     web_search_seen: bool = False
     child_counter: int = 0
-    tinyfish_counter: int = 0
 
 
 @dataclass(slots=True)
@@ -484,34 +473,12 @@ async def _run_openai_loop_inner(
                             goal = tool_call.arguments["extraction_goal"]
                             callbacks.runtime.tinyfish_counter = 0
 
-                            async def on_progress(trace_event: TinyFishTraceEvent) -> None:
-                                callbacks.runtime.tinyfish_counter += 1
-                                payload_model = TinyFishProgressPayload(
-                                    url=canonicalize_url(url),
-                                    purpose=trace_event.purpose,
-                                    trace=trace_event,
-                                )
-                                await ctx.object_call(
-                                    append_event,
-                                    key=branch.job_id,
-                                    arg=EventAppendRequest(
-                                        event_type="tinyfish.progress",
-                                        event_id=stable_id(
-                                            branch.job_id,
-                                            branch.branch_id,
-                                            "tinyfish.progress",
-                                            url,
-                                            callbacks.runtime.tinyfish_counter,
-                                        ),
-                                        branch_id=branch.branch_id,
-                                        payload=payload_model,
-                                    ),
-                                )
-
-                            artifact = await tinyfish_client.run_scrape(
-                                url,
-                                goal,
-                                on_progress=on_progress if branch.stream_tinyfish else None,
+                            scrape_name = f"tinyfish-scrape-{stable_id(url, goal)}"
+                            artifact = await ctx.run_typed(
+                                scrape_name,
+                                tinyfish_client.run_scrape,
+                                url=url,
+                                goal=goal,
                             )
                             output = {
                                 "status": "completed",
@@ -693,4 +660,4 @@ async def run_explorer(ctx: restate.WorkflowContext, branch: ExplorerBranchInput
         raise
 
 
-SERVICES = [greeter, search_job_state, explorer_workflow]
+SERVICES = [search_job_state, explorer_workflow]
