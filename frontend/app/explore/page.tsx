@@ -35,15 +35,16 @@ export default function ExplorePage() {
       </div>
 
       <section className="explore-shell">
-        <span className="hero-badge">fische destination</span>
+        <div className="explore-topbar">
+          <span className="hero-badge">fische destination</span>
+          <Link className="return-home-button" href="/">
+            Return home
+          </Link>
+        </div>
 
         <div className="explore-card">
           <p className="explore-kicker">Next stop</p>
           <h1>Where would you like to explore?</h1>
-
-          <label className="sr-only" htmlFor="explore-location">
-            Where would you like to explore?
-          </label>
 
           <div className="explore-input-row">
             <input

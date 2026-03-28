@@ -383,6 +383,35 @@ select {
   gap: 24px;
 }
 
+.explore-topbar {
+  width: min(880px, 100%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.return-home-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 1rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  color: rgba(255, 255, 255, 0.96);
+  text-decoration: none;
+  font-weight: 700;
+  backdrop-filter: blur(12px);
+  transition: transform 180ms ease, background 180ms ease;
+}
+
+.return-home-button:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.18);
+}
+
 .explore-card {
   width: min(880px, 100%);
   display: grid;
@@ -455,6 +484,9 @@ select {
 }
 
 .explore-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: 74px;
   padding: 0 1.3rem;
   border: 0;
@@ -1228,6 +1260,11 @@ select {
   .explore-card {
     padding: 28px 18px;
     border-radius: 26px;
+  }
+
+  .explore-topbar {
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .explore-input-row {
