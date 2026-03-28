@@ -1485,6 +1485,38 @@
         ]
       }
     },
+    "/db": {
+      "get": {
+        "operationId": "db_check_db_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "integer"
+                      }
+                    ]
+                  },
+                  "title": "Response Db Check Db Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Db Check",
+        "tags": [
+          "meta"
+        ]
+      }
+    },
     "/health": {
       "get": {
         "operationId": "health_health_get",

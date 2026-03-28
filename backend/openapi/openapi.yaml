@@ -184,6 +184,24 @@ paths:
                   type: string
                 type: object
                 title: Response Health Health Get
+  /db:
+    get:
+      tags:
+      - meta
+      summary: Db Check
+      operationId: db_check_db_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  anyOf:
+                  - type: string
+                  - type: integer
+                type: object
+                title: Response Db Check Db Get
 components:
   schemas:
     ApiError:
