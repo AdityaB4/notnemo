@@ -1,7 +1,26 @@
+import os
+import httpx
 import restate
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
-app = FastAPI()
+RESTATE_ADMIN_URL = os.environ.get("RESTATE_ADMIN_URL", "http://localhost:9070")
+SELF_URL = os.environ.get("SELF_URL", "http://localhost:8000")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(
+            f"{RESTATE_ADMIN_URL}/deployments",
+            json={"uri": f"{SELF_URL}/restate"},
+        )
+        resp.raise_for_status()
+
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
 
 greeter = restate.Service("Greeter")
 
