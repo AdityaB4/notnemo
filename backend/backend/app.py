@@ -8,14 +8,15 @@ import asyncpg
 import braintrust
 from fastapi import FastAPI
 
+from backend import db
 from backend.config import get_settings
 from backend.ingress import RestateIngressClient, RestateIngressError
 from backend.openapi import configure_openapi
 from backend.restate_services import SERVICES
 from backend.routes import router
 
+logging.basicConfig(level=logging.INFO, format="%(levelname)s:     %(name)s - %(message)s")
 logger = logging.getLogger(__name__)
-pool: asyncpg.Pool | None = None
 
 
 async def _register_with_retry(settings, attempts: int = 8, delay_seconds: float = 1.0) -> None:
@@ -39,22 +40,11 @@ async def _register_with_retry(settings, attempts: int = 8, delay_seconds: float
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global pool
     settings = get_settings()
     registration_task: asyncio.Task[None] | None = None
     if settings.database_url:
-        pool = await asyncpg.create_pool(settings.database_url)
-        async with pool.acquire() as conn:
-            await conn.execute("CREATE EXTENSION IF NOT EXISTS vector")
-            await conn.execute(
-                """
-                CREATE TABLE IF NOT EXISTS items (
-                    id SERIAL PRIMARY KEY,
-                    content TEXT NOT NULL,
-                    embedding vector(3)
-                )
-                """
-            )
+        db.pool = await asyncpg.create_pool(settings.database_url)
+        await db.run_migrations()
     if settings.braintrust_api_key:
         braintrust.init_logger(
             project=settings.braintrust_project,
@@ -68,9 +58,9 @@ async def lifespan(app: FastAPI):
         registration_task.cancel()
         with suppress(asyncio.CancelledError):
             await registration_task
-    if pool is not None:
-        await pool.close()
-        pool = None
+    if db.pool is not None:
+        await db.pool.close()
+        db.pool = None
 
 
 def create_app() -> FastAPI:
@@ -85,9 +75,9 @@ def create_app() -> FastAPI:
 
     @app.get("/db", tags=["meta"])
     async def db_check() -> dict[str, str | int]:
-        if pool is None:
+        if db.pool is None:
             return {"error": "no database configured"}
-        async with pool.acquire() as conn:
+        async with db.pool.acquire() as conn:
             version = await conn.fetchval(
                 "SELECT extversion FROM pg_extension WHERE extname = 'vector'"
             )

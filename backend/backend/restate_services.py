@@ -12,7 +12,9 @@ import braintrust
 import restate
 
 from backend.config import get_settings
+from backend.db import save_search_job
 from backend.domains import enumerate_candidate_urls
+from backend.embeddings import generate_embedding
 from backend.ingress import RestateIngressClient, RestateIngressError
 from backend.models import (
     BranchSummary,
@@ -407,7 +409,7 @@ class WorkflowCallbacks:
         )
 
     def start_sub_explorer(
-        self, focus_query: str, urls: list[str], rationale: str
+        self, focus_query: str, urls: list[str], rationale: str, trace_parent: str | None = None
     ):
         if self.branch.depth >= self.branch.limits.max_depth:
             raise ValueError("Sub-explorer depth budget exhausted.")
@@ -432,6 +434,7 @@ class WorkflowCallbacks:
             candidate_urls=urls or self.branch.candidate_urls,
             limits=self.branch.limits,
             stream_tinyfish=self.branch.stream_tinyfish,
+            trace_parent=trace_parent,
         )
         return self.ctx.workflow_call(run_explorer, key=child_key, arg=child_branch)
 
@@ -452,9 +455,9 @@ async def _run_openai_loop(
     callbacks = WorkflowCallbacks(ctx=ctx, branch=branch)
     openai_client = OpenAIResponsesClient(settings)
 
-    span = braintrust.start_span(
-        name="explorer_loop",
-        input={
+    span_kwargs: dict[str, Any] = {
+        "name": "explorer_loop",
+        "input": {
             "job_id": branch.job_id,
             "branch_id": branch.branch_id,
             "depth": branch.depth,
@@ -462,26 +465,28 @@ async def _run_openai_loop(
             "keywords": branch.normalized_query.keywords,
             "candidate_urls": branch.candidate_urls[:10],
         },
-    )
+    }
+    if branch.trace_parent:
+        span_kwargs["parent"] = branch.trace_parent
 
-    try:
-        summary = await _run_openai_loop_inner(
-            ctx, branch, settings, callbacks, openai_client, span,
-        )
-        span.log(
-            output={
-                "branch_id": summary.branch_id,
-                "result_count": summary.result_count,
-                "coverage_assessment": summary.coverage_assessment,
-                "notes": summary.notes,
-            },
-        )
-        return summary
-    except Exception as exc:
-        span.log(output={"error": str(exc)})
-        raise
-    finally:
-        span.end()
+    # Use as context manager so wrap_openai auto-spans nest under this span.
+    with braintrust.start_span(**span_kwargs) as span:
+        try:
+            summary = await _run_openai_loop_inner(
+                ctx, branch, settings, callbacks, openai_client, span,
+            )
+            span.log(
+                output={
+                    "branch_id": summary.branch_id,
+                    "result_count": summary.result_count,
+                    "coverage_assessment": summary.coverage_assessment,
+                    "notes": summary.notes,
+                },
+            )
+            return summary
+        except Exception as exc:
+            span.log(output={"error": str(exc)})
+            raise
 
 
 async def _run_openai_loop_inner(
@@ -514,34 +519,13 @@ async def _run_openai_loop_inner(
     for iteration in range(settings.explorer_max_iterations):
         payload = build_response_payload(settings, response_input, previous_response_id)
 
-        llm_span = parent_span.start_span(
-            name="openai_response",
-            span_attributes={"type": "llm"},
-            input={
-                "model": settings.openai_explorer_model,
-                "iteration": iteration,
-                "input_length": len(payload.get("input", [])),
-            },
-        )
+        # wrap_openai auto-traces each responses.create() call with full
+        # input/output/usage, nested under the current explorer_loop span.
         try:
             response = await ctx.run_typed(
                 "openai-response", openai_client.create_response, payload=payload
             )
-            llm_span.log(
-                output={
-                    "response_id": response.get("id"),
-                    "output_items": len(response.get("output", [])),
-                    "has_tool_calls": bool(extract_function_calls(response)),
-                    "has_web_search": saw_web_search(response),
-                },
-                metadata={
-                    "model": response.get("model"),
-                    "usage": response.get("usage"),
-                },
-            )
         except OpenAIResponseError as exc:
-            llm_span.log(output={"error": str(exc)})
-            llm_span.end()
             fallback = build_fallback_outcome(
                 branch,
                 note=f"OpenAI request failed, using fallback candidates instead: {exc}",
@@ -556,8 +540,6 @@ async def _run_openai_loop_inner(
                 result_count=len(fallback.results[: branch.limits.max_results]),
                 follow_up_queries=fallback.follow_up_queries,
             )
-        finally:
-            llm_span.end()
 
         previous_response_id = response.get("id")
         callbacks.runtime.web_search_seen = callbacks.runtime.web_search_seen or saw_web_search(
@@ -610,6 +592,7 @@ async def _run_openai_loop_inner(
                             focus_query=tool_call.arguments["focus_query"],
                             urls=tool_call.arguments.get("urls", []),
                             rationale=tool_call.arguments["rationale"],
+                            trace_parent=tool_span.export(),
                         )
                         pending_invocations.append(
                             PendingToolInvocation(
@@ -701,6 +684,47 @@ async def run_explorer(ctx: restate.WorkflowContext, branch: ExplorerBranchInput
     is_root = branch.parent_branch_id is None
     seed_repository = MockSeedUrlRepository()
 
+    # For root branches, create a job-level span that groups all traces for this search job.
+    # Sub-explorer branches receive trace_parent from their parent's tool span instead.
+    job_span = None
+    if is_root:
+        job_span = braintrust.start_span(
+            name=f"search_job:{branch.job_id}",
+            input={
+                "job_id": branch.job_id,
+                "query": branch.normalized_query.query_text,
+                "keywords": branch.normalized_query.keywords,
+            },
+        )
+        branch = branch.model_copy(update={"trace_parent": job_span.export()})
+
+    try:
+        summary = await _run_explorer_inner(ctx, branch, settings, is_root, seed_repository)
+        if job_span:
+            job_span.log(
+                output={
+                    "status": "completed",
+                    "result_count": summary.result_count,
+                    "coverage_assessment": summary.coverage_assessment,
+                },
+            )
+        return summary
+    except Exception as exc:
+        if job_span:
+            job_span.log(output={"status": "failed", "error": str(exc)})
+        raise
+    finally:
+        if job_span:
+            job_span.end()
+
+
+async def _run_explorer_inner(
+    ctx: restate.WorkflowContext,
+    branch: ExplorerBranchInput,
+    settings,
+    is_root: bool,
+    seed_repository: MockSeedUrlRepository,
+) -> BranchSummary:
     if is_root:
         await ctx.object_call(
             initialize,
@@ -779,7 +803,7 @@ async def run_explorer(ctx: restate.WorkflowContext, branch: ExplorerBranchInput
             ),
         )
         if is_root:
-            await ctx.object_call(
+            snapshot = await ctx.object_call(
                 mark_completed,
                 key=branch.job_id,
                 arg=JobStatusUpdate(
@@ -787,10 +811,13 @@ async def run_explorer(ctx: restate.WorkflowContext, branch: ExplorerBranchInput
                     payload={"coverage_assessment": summary.coverage_assessment},
                 ),
             )
+            snapshot_data = snapshot.model_dump(mode="json") if hasattr(snapshot, "model_dump") else snapshot
+            embedding = await generate_embedding(branch.normalized_query.query_text, settings)
+            await save_search_job(snapshot_data, query_embedding=embedding)
         return summary
     except Exception as exc:
         if is_root:
-            await ctx.object_call(
+            snapshot = await ctx.object_call(
                 mark_failed,
                 key=branch.job_id,
                 arg=JobError(
@@ -800,6 +827,8 @@ async def run_explorer(ctx: restate.WorkflowContext, branch: ExplorerBranchInput
                     details={"branch_id": branch.branch_id},
                 ),
             )
+            snapshot_data = snapshot.model_dump(mode="json") if hasattr(snapshot, "model_dump") else snapshot
+            await save_search_job(snapshot_data)
         raise
 
 
