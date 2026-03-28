@@ -471,8 +471,6 @@ async def _run_openai_loop_inner(
                         try:
                             url = tool_call.arguments["url"]
                             goal = tool_call.arguments["extraction_goal"]
-                            callbacks.runtime.tinyfish_counter = 0
-
                             scrape_name = f"tinyfish-scrape-{stable_id(url, goal)}"
                             artifact = await ctx.run_typed(
                                 scrape_name,
