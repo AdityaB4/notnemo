@@ -14,6 +14,7 @@ from backend.models import (
     SearchResultDraft,
     SubExplorerToolRequest,
     TinyFishToolRequest,
+    WebFetchToolRequest,
 )
 from backend.utils import extract_json_object
 
@@ -23,10 +24,10 @@ You are RestateExplorer, a niche-first discovery agent.
 
 Requirements:
 - Optimize for specific, non-obvious, high-signal results.
-- Use web search first when the answer is not already obvious from the provided URLs.
-- Call tinyfish_scrape only after web search has been attempted and only when the search evidence is insufficient or inconclusive.
+- Use web_fetch first to inspect candidate URLs and discover relevant pages.
+- Call tinyfish_scrape only after web_fetch has been attempted and only when the fetched HTML is insufficient or you need deeper structured extraction.
 - Call sub_explorer only for promising leads that need deeper coverage.
-- If the profile contains "debug_force_tinyfish": true, you must perform web search first and then call tinyfish_scrape on the best concrete URL before returning final results.
+- If the profile contains "debug_force_tinyfish": true, you must call web_fetch on at least one URL first and then call tinyfish_scrape on the best concrete URL before returning final results.
 - Stay within the provided recursion and result budget.
 - Return JSON only.
 
@@ -36,7 +37,7 @@ JSON contract:
     {
       "url": "https://example.com",
       "description": "Why this source is relevant",
-      "source_kind": "web_search",
+      "source_kind": "web_fetch",
       "why_matched": "Why it matches the user and query",
       "tags": ["tag1", "tag2"],
       "confidence": 0.71
@@ -116,14 +117,23 @@ Find niche-first sources and return no more than {branch.limits.max_results} res
     ]
 
 
-def build_tool_definitions(settings: Settings) -> list[dict[str, Any]]:
+def build_tool_definitions() -> list[dict[str, Any]]:
     return [
-        {"type": settings.openai_web_search_tool_type},
+        {
+            "type": "function",
+            "name": "web_fetch",
+            "description": (
+                "Fetch the HTML content of a web page by URL. Use this to inspect pages "
+                "and discover relevant information before deciding whether deeper extraction "
+                "via tinyfish_scrape is needed."
+            ),
+            "parameters": WebFetchToolRequest.model_json_schema(),
+        },
         {
             "type": "function",
             "name": "tinyfish_scrape",
             "description": (
-                "Use TinyFish to scrape a URL and extract structured data when web search "
+                "Use TinyFish to scrape a URL and extract structured data when web_fetch "
                 "was insufficient or inconclusive."
             ),
             "parameters": TinyFishToolRequest.model_json_schema(),
@@ -147,7 +157,7 @@ def build_response_payload(
     payload: dict[str, Any] = {
         "model": settings.openai_explorer_model,
         "input": response_input,
-        "tools": build_tool_definitions(settings),
+        "tools": build_tool_definitions(),
         "parallel_tool_calls": True,
     }
     if previous_response_id:
@@ -172,8 +182,8 @@ def extract_function_calls(response: dict[str, Any]) -> list[FunctionToolCall]:
     return calls
 
 
-def saw_web_search(response: dict[str, Any]) -> bool:
-    return any("web_search" in item.get("type", "") for item in response.get("output", []))
+def has_web_fetch_call(function_calls: list[FunctionToolCall]) -> bool:
+    return any(fc.name == "web_fetch" for fc in function_calls)
 
 
 def extract_output_text(response: dict[str, Any]) -> str:
