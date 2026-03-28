@@ -1,0 +1,46 @@
+app = "fiche-restate"
+primary_region = "sin"
+
+[build]
+  image = "docker.restate.dev/restatedev/restate:latest"
+
+[[vm]]
+  memory = "1gb"
+  cpu_kind = "shared"
+  cpus = 1
+
+[env]
+  RESTATE_NODE_NAME = "kathmandu-restate"
+  RESTATE_CLUSTER_NAME = "kathmandu-restate"
+
+[mounts]
+  source = "restate_data"
+  destination = "/restate-data"
+
+[[services]]
+  internal_port = 8080
+  protocol = "tcp"
+
+  [[services.ports]]
+    handlers = ["http"]
+    port = 80
+    force_https = true
+
+  [[services.ports]]
+    handlers = ["tls", "http"]
+    port = 443
+
+  [[services.http_checks]]
+    interval = 15000
+    grace_period = "10s"
+    method = "GET"
+    path = "/restate/health"
+    timeout = 5000
+
+[[services]]
+  internal_port = 9070
+  protocol = "tcp"
+
+  [[services.ports]]
+    port = 9070
+    handlers = ["tls", "http"]
