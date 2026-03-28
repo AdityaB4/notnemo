@@ -1,5 +1,6 @@
 import Image from "next/image";
-import Link from "next/link";
+
+import { IntroForm } from "./intro-form";
 
 const bubbles = [
   { left: "6%", size: 18, duration: 12, delay: 0 },
@@ -10,13 +11,6 @@ const bubbles = [
   { left: "61%", size: 16, duration: 17, delay: 5 },
   { left: "74%", size: 26, duration: 12, delay: 2 },
   { left: "88%", size: 10, duration: 14, delay: 7 },
-];
-
-const starterTags = [
-  "Hidden food spots",
-  "Quiet anniversary plans",
-  "Indie coffee places",
-  "Artsy neighborhoods",
 ];
 
 export default function Page() {
@@ -52,34 +46,7 @@ export default function Page() {
             uncannily you.
           </p>
 
-          <form className="intake-card">
-            <label className="intake-label" htmlFor="about-you">
-              What should we know about you?
-            </label>
-            <textarea
-              id="about-you"
-              className="response-input"
-              placeholder="I love cozy places, seafood, slow evenings, handmade things, and anywhere that feels like a secret."
-              rows={5}
-            />
-
-            <div className="tag-row" aria-label="Sample preferences">
-              {starterTags.map((tag) => (
-                <span className="tag-chip" key={tag}>
-                  {tag}
-                </span>
-              ))}
-            </div>
-
-            <div className="card-footer">
-              <p className="helper-text">
-                This helps fische tune future searches to your vibe.
-              </p>
-              <Link className="continue-button" href="/explore">
-                Start exploring
-              </Link>
-            </div>
-          </form>
+          <IntroForm />
         </div>
 
         <aside className="hero-visual" aria-hidden="true">

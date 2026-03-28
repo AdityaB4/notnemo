@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { ExploreForm } from "./explore-form";
+
 const bubbles = [
   { left: "6%", size: 18, duration: 12, delay: 0 },
   { left: "14%", size: 12, duration: 16, delay: 4 },
@@ -42,27 +44,7 @@ export default function ExplorePage() {
           </Link>
         </div>
 
-        <div className="explore-card">
-          <p className="explore-kicker">Next stop</p>
-          <h1>Where would you like to explore?</h1>
-
-          <div className="explore-input-row">
-            <input
-              id="explore-location"
-              className="explore-input"
-              type="text"
-              placeholder="Singapore, Kyoto, hidden streets in Seoul..."
-            />
-
-            <Link className="explore-button" href="/exploring" aria-label="Continue">
-              Go
-            </Link>
-          </div>
-
-          <p className="explore-helper">
-            Pick a city, neighborhood, or even a vibe. We&apos;ll take it from there.
-          </p>
-        </div>
+        <ExploreForm />
       </section>
     </main>
   );

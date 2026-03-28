@@ -174,6 +174,17 @@ select {
   font-size: 0.92rem;
 }
 
+.tag-chip-button {
+  border: 0;
+  cursor: pointer;
+  transition: transform 180ms ease, background 180ms ease;
+}
+
+.tag-chip-button:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.88);
+}
+
 .card-footer {
   display: flex;
   align-items: center;
@@ -542,6 +553,50 @@ select {
   gap: 12px;
 }
 
+.exploring-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 0.9rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.status-pill-loading,
+.status-pill-running {
+  background: rgba(255, 176, 64, 0.22);
+}
+
+.status-pill-completed {
+  background: rgba(69, 198, 118, 0.22);
+}
+
+.status-pill-failed {
+  background: rgba(255, 106, 106, 0.24);
+}
+
+.status-meta,
+.status-error {
+  color: rgba(239, 251, 255, 0.88);
+  font-size: 0.92rem;
+}
+
+.status-error {
+  color: rgba(255, 226, 226, 0.96);
+}
+
 .map-copy {
   display: grid;
   gap: 10px;
@@ -567,6 +622,15 @@ select {
   line-height: 1.7;
 }
 
+.map-activity {
+  color: rgba(255, 241, 251, 0.96);
+  font-size: 0.98rem;
+}
+
+.map-activity strong {
+  color: #ffffff;
+}
+
 .map-board {
   position: relative;
   min-height: 920px;
@@ -588,6 +652,16 @@ select {
     radial-gradient(circle at 14% 18%, rgba(255, 255, 255, 0.06), transparent 9%),
     radial-gradient(circle at 74% 36%, rgba(255, 255, 255, 0.05), transparent 8%);
   pointer-events: none;
+}
+
+.map-empty-state {
+  position: absolute;
+  inset: auto 0 10% 0;
+  z-index: 2;
+  text-align: center;
+  color: rgba(241, 252, 255, 0.92);
+  font-size: 1rem;
+  font-weight: 700;
 }
 
 .map-paths {
