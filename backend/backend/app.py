@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager, suppress
 import asyncpg
 import braintrust
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from backend import db
 from backend.config import get_settings
@@ -66,6 +67,13 @@ async def lifespan(app: FastAPI):
 def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(title=settings.app_name, version=settings.app_version, lifespan=lifespan)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
     app.mount("/restate", __import__("restate").app(services=SERVICES))
     app.include_router(router)
 
