@@ -613,12 +613,13 @@ select {
   border: 0;
   background: transparent;
   color: rgba(255, 255, 255, 0.95);
-  font-size: 0.82rem;
+  font-size: 0.98rem;
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   text-shadow: 0 8px 18px rgba(8, 50, 74, 0.18);
   cursor: pointer;
+  padding: 0.25rem 0.4rem;
   transition: transform 180ms ease, opacity 180ms ease;
 }
 
@@ -712,12 +713,35 @@ select {
   clip-path: ellipse(46% 48% at 50% 58%);
 }
 
-.island-palm,
-.island-leaf {
+.island-detail {
   position: absolute;
 }
 
-.island-palm {
+.island-art-lagoon .island-sand {
+  width: 104px;
+  left: 16px;
+}
+
+.island-art-lagoon .island-grass {
+  width: 82px;
+  left: 28px;
+  background: linear-gradient(180deg, #89e39a 0%, #43bb6c 100%);
+}
+
+.island-art-lagoon::after {
+  content: "";
+  position: absolute;
+  left: 43px;
+  bottom: 28px;
+  width: 46px;
+  height: 24px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #7ad8ff 0%, #3eb6ee 100%);
+  opacity: 0.9;
+}
+
+.island-art-lagoon .island-detail-a,
+.island-art-lagoon .island-detail-b {
   width: 6px;
   height: 28px;
   bottom: 42px;
@@ -726,45 +750,169 @@ select {
   transform-origin: bottom center;
 }
 
-.island-palm-left {
+.island-art-lagoon .island-detail-a {
   left: 48px;
   transform: rotate(-18deg);
 }
 
-.island-palm-right {
+.island-art-lagoon .island-detail-b {
   left: 78px;
   transform: rotate(10deg);
 }
 
-.island-leaf {
+.island-art-lagoon .island-detail-c,
+.island-art-lagoon .island-detail-d {
   width: 30px;
   height: 14px;
   background: linear-gradient(180deg, #59cb73 0%, #239351 100%);
   border-radius: 999px 999px 999px 0;
 }
 
-.island-leaf-a {
+.island-art-lagoon .island-detail-c {
   left: 29px;
   bottom: 67px;
   transform: rotate(-26deg);
 }
 
-.island-leaf-b {
+.island-art-lagoon .island-detail-d {
   left: 42px;
   bottom: 72px;
   transform: rotate(-2deg);
 }
 
-.island-leaf-c {
-  left: 69px;
-  bottom: 69px;
-  transform: scaleX(-1) rotate(20deg);
+.island-art-cliff .island-sand {
+  width: 96px;
+  left: 22px;
+  background: linear-gradient(180deg, #ffe09c 0%, #efc260 100%);
 }
 
-.island-leaf-d {
-  left: 83px;
-  bottom: 63px;
-  transform: scaleX(-1) rotate(38deg);
+.island-art-cliff .island-grass {
+  width: 96px;
+  left: 22px;
+  height: 24px;
+  bottom: 50px;
+  background: linear-gradient(180deg, #82dc92 0%, #3da662 100%);
+}
+
+.island-art-cliff .island-detail-a,
+.island-art-cliff .island-detail-b,
+.island-art-cliff .island-detail-c {
+  width: 26px;
+  height: 30px;
+  bottom: 47px;
+  background: linear-gradient(180deg, #7ab65d 0%, #518341 100%);
+  border-radius: 12px 12px 6px 6px;
+}
+
+.island-art-cliff .island-detail-a {
+  left: 36px;
+  transform: rotate(-10deg);
+}
+
+.island-art-cliff .island-detail-b {
+  left: 58px;
+}
+
+.island-art-cliff .island-detail-c {
+  left: 80px;
+  transform: rotate(12deg);
+}
+
+.island-art-cliff .island-detail-d {
+  width: 7px;
+  height: 31px;
+  left: 64px;
+  bottom: 38px;
+  background: linear-gradient(180deg, #815221 0%, #5f3a16 100%);
+  border-radius: 999px;
+}
+
+.island-art-volcano .island-sand {
+  width: 106px;
+  left: 15px;
+}
+
+.island-art-volcano .island-grass {
+  width: 88px;
+  left: 24px;
+  height: 20px;
+  bottom: 48px;
+}
+
+.island-art-volcano .island-detail-a {
+  left: 47px;
+  bottom: 40px;
+  width: 0;
+  height: 0;
+  border-left: 18px solid transparent;
+  border-right: 18px solid transparent;
+  border-bottom: 34px solid #78513a;
+}
+
+.island-art-volcano .island-detail-b {
+  left: 58px;
+  bottom: 61px;
+  width: 10px;
+  height: 8px;
+  border-radius: 999px;
+  background: #ff8a4f;
+  box-shadow:
+    9px -8px 0 0 rgba(255, 138, 79, 0.8),
+    18px 1px 0 0 rgba(255, 138, 79, 0.68);
+}
+
+.island-art-grove .island-sand {
+  width: 108px;
+  left: 14px;
+}
+
+.island-art-grove .island-grass {
+  width: 96px;
+  left: 20px;
+  height: 26px;
+}
+
+.island-art-grove .island-detail-a,
+.island-art-grove .island-detail-b,
+.island-art-grove .island-detail-c,
+.island-art-grove .island-detail-d {
+  width: 20px;
+  height: 22px;
+  bottom: 58px;
+  background: linear-gradient(180deg, #7bd76d 0%, #3aa35a 100%);
+  border-radius: 16px 16px 10px 10px;
+}
+
+.island-art-grove .island-detail-a {
+  left: 30px;
+}
+
+.island-art-grove .island-detail-b {
+  left: 50px;
+}
+
+.island-art-grove .island-detail-c {
+  left: 70px;
+}
+
+.island-art-grove .island-detail-d {
+  left: 90px;
+}
+
+.island-art-grove::before {
+  content: "";
+  position: absolute;
+  left: 56px;
+  bottom: 40px;
+  width: 6px;
+  height: 24px;
+  background: #6a441a;
+  border-radius: 999px;
+  box-shadow:
+    -24px -2px 0 0 #6a441a,
+    -4px -1px 0 0 #6a441a,
+    18px 0 0 0 #6a441a,
+    36px 1px 0 0 #6a441a;
 }
 
 .island-name {
@@ -777,33 +925,42 @@ select {
   text-shadow: 0 6px 18px rgba(8, 50, 74, 0.18);
 }
 
-.island-ring .island-art {
+.island-art-lagoon {
   transform: rotate(-8deg);
 }
 
-.island-square .island-art {
+.island-art-cliff {
   transform: rotate(7deg) scale(0.96);
 }
 
-.island-triangle .island-art {
-  transform: rotate(-4deg) scale(0.92);
+.island-art-volcano {
+  transform: rotate(-4deg) scale(0.94);
 }
 
-.island-oval .island-art {
+.island-art-grove {
   transform: rotate(12deg) scale(1.04);
 }
 
 .island-popover {
   position: absolute;
-  transform: translate(0, -50%);
+  transform: translate(-50%, -50%);
   z-index: 3;
-  width: min(280px, calc(100% - 48px));
+  width: min(240px, calc(100vw - 64px));
+  max-width: calc(100% - 64px);
   padding: 20px 22px;
   border-radius: 28px;
   background: rgba(255, 209, 242, 0.92);
   border: 5px solid #ff5fb7;
   color: #7a1a54;
   box-shadow: 0 18px 40px rgba(101, 31, 79, 0.18);
+}
+
+.island-popover-left {
+  transform: translate(-18%, -50%);
+}
+
+.island-popover-right {
+  transform: translate(-82%, -50%);
 }
 
 .island-popover-label {
@@ -833,32 +990,56 @@ select {
 
 .treasure-marker {
   position: absolute;
-  bottom: 5%;
-  left: 63%;
+  bottom: 1%;
+  left: 52%;
   z-index: 2;
   border: 0;
-  background: transparent;
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.16), transparent 70%);
   color: #ffffff;
   display: grid;
   justify-items: center;
-  gap: 6px;
+  gap: 4px;
   cursor: pointer;
+  padding: 0.7rem 0.9rem;
+  transition: transform 180ms ease, opacity 180ms ease, filter 180ms ease;
+}
+
+.treasure-marker:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.04);
 }
 
 .treasure-x {
-  font-family: var(--display-font);
-  font-size: clamp(3rem, 7vw, 4.8rem);
+  font-family: Georgia, serif;
+  font-size: clamp(3.8rem, 7vw, 5.4rem);
   font-weight: 700;
-  line-height: 0.8;
-  text-shadow: 0 10px 18px rgba(8, 50, 74, 0.12);
+  line-height: 0.78;
+  letter-spacing: -0.06em;
+  color: #ffffff;
+  text-shadow:
+    0 12px 26px rgba(8, 50, 74, 0.2),
+    0 0 18px rgba(255, 255, 255, 0.24);
+}
+
+.treasure-kicker {
+  color: rgba(246, 253, 255, 0.9);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
 }
 
 .treasure-label {
-  font-family: var(--display-font);
-  font-size: clamp(1.4rem, 3vw, 2.6rem);
-  line-height: 0.95;
+  font-family: Georgia, serif;
+  font-size: clamp(1.8rem, 3vw, 2.8rem);
+  font-weight: 700;
+  line-height: 0.94;
+  letter-spacing: -0.04em;
   text-align: center;
-  max-width: 10rem;
+  max-width: 12rem;
+  text-shadow:
+    0 10px 20px rgba(8, 50, 74, 0.16),
+    0 0 14px rgba(255, 255, 255, 0.18);
 }
 
 .curated-shell {
@@ -1043,7 +1224,7 @@ select {
   }
 
   .treasure-marker {
-    left: 58%;
-    bottom: 5%;
+    left: 47%;
+    bottom: 1%;
   }
 }

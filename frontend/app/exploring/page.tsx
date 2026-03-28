@@ -23,56 +23,44 @@ const streamedWebsites = [
     name: "Atlas Obscura",
     href: "https://www.atlasobscura.com",
     blurb: "A rich source of unusual destinations, hidden landmarks, and local curiosities.",
-    top: "22%",
-    left: "27%",
-    shape: "ring",
     progress: 23,
-    fishTop: "22%",
-    fishLeft: "20%",
-    popoverTop: "10%",
-    popoverLeft: "31%",
+    circleX: 27,
+    circleY: 23.6,
+    popupSide: "right",
+    islandStyle: "lagoon",
   },
   {
     id: "compass",
     name: "Hidden Compass",
     href: "https://hiddencompass.net",
     blurb: "Travel storytelling with a strong secret-paths energy that fits the product well.",
-    top: "31%",
-    left: "75%",
-    shape: "square",
     progress: 67,
-    fishTop: "31%",
-    fishLeft: "68%",
-    popoverTop: "16%",
-    popoverLeft: "61%",
+    circleX: 74.7,
+    circleY: 37.1,
+    popupSide: "left",
+    islandStyle: "cliff",
   },
   {
     id: "roads",
     name: "Roads & Kingdoms",
     href: "https://roadsandkingdoms.com",
     blurb: "Useful for discovery through food, neighborhoods, and distinctive local culture.",
-    top: "58%",
-    left: "40%",
-    shape: "triangle",
     progress: 47,
-    fishTop: "58%",
-    fishLeft: "32%",
-    popoverTop: "46%",
-    popoverLeft: "46%",
+    circleX: 40.4,
+    circleY: 58,
+    popupSide: "right",
+    islandStyle: "volcano",
   },
   {
     id: "locals",
     name: "Spotted by Locals",
     href: "https://www.spottedbylocals.com",
     blurb: "A strong mock example of city-based hidden gems recommended by local voices.",
-    top: "72%",
-    left: "82%",
-    shape: "oval",
     progress: 88,
-    fishTop: "72%",
-    fishLeft: "74%",
-    popoverTop: "55%",
-    popoverLeft: "62%",
+    circleX: 81.9,
+    circleY: 84.6,
+    popupSide: "left",
+    islandStyle: "grove",
   },
 ];
 
@@ -144,9 +132,12 @@ export default function ExploringPage() {
       setFishFacing("forward");
     }
 
+    const islandTop = destination.circleY - 8.5;
+    const islandLeft = destination.circleX;
+
     setFishDock({
-      top: destination.fishTop,
-      left: destination.fishLeft,
+      top: `${islandTop + 2}%`,
+      left: `${islandLeft - 7}%`,
     });
     setActiveIsland(islandId);
   };
@@ -201,10 +192,15 @@ export default function ExploringPage() {
               className="map-route map-route-white-soft"
             />
             <circle cx="88" cy="126" r="11" className="route-stop route-start" />
-            <circle cx="270" cy="165" r="10" className="route-stop" />
-            <circle cx="747" cy="259" r="10" className="route-stop" />
-            <circle cx="404" cy="406" r="10" className="route-stop" />
-            <circle cx="819" cy="592" r="10" className="route-stop" />
+            {streamedWebsites.map((website) => (
+              <circle
+                key={website.id}
+                cx={website.circleX * 10}
+                cy={website.circleY * 7}
+                r="10"
+                className="route-stop"
+              />
+            ))}
             <circle cx="642" cy="684" r="12" className="route-stop route-stop-final" />
           </svg>
 
@@ -238,22 +234,21 @@ export default function ExploringPage() {
             <button
               key={website.id}
               type="button"
-              className={`map-island island-${website.shape} ${
-                activeIsland === website.id ? "island-active" : ""
-              }`}
-              style={{ top: website.top, left: website.left }}
+              className={`map-island ${activeIsland === website.id ? "island-active" : ""}`}
+              style={{
+                top: `${website.circleY - 8.5}%`,
+                left: `${website.circleX}%`,
+              }}
               onClick={() => moveFishToIsland(website.id)}
             >
-              <span className="island-art" aria-hidden="true">
+              <span className={`island-art island-art-${website.islandStyle}`} aria-hidden="true">
                 <span className="island-shadow" />
                 <span className="island-sand" />
                 <span className="island-grass" />
-                <span className="island-palm island-palm-left" />
-                <span className="island-palm island-palm-right" />
-                <span className="island-leaf island-leaf-a" />
-                <span className="island-leaf island-leaf-b" />
-                <span className="island-leaf island-leaf-c" />
-                <span className="island-leaf island-leaf-d" />
+                <span className="island-detail island-detail-a" />
+                <span className="island-detail island-detail-b" />
+                <span className="island-detail island-detail-c" />
+                <span className="island-detail island-detail-d" />
               </span>
               <span className="island-name">{website.name}</span>
               <span className="sr-only">{website.name}</span>
@@ -262,10 +257,10 @@ export default function ExploringPage() {
 
           {selectedWebsite ? (
             <div
-              className="island-popover"
+              className={`island-popover island-popover-${selectedWebsite.popupSide}`}
               style={{
-                top: selectedWebsite.popoverTop,
-                left: selectedWebsite.popoverLeft,
+                top: `${selectedWebsite.circleY - 4}%`,
+                left: `${selectedWebsite.circleX + (selectedWebsite.popupSide === "right" ? 20 : -20)}%`,
               }}
             >
               <p className="island-popover-label">Website link</p>
@@ -279,6 +274,7 @@ export default function ExploringPage() {
 
           <button type="button" className="treasure-marker" onClick={scrollToCurated}>
             <span className="treasure-x">X</span>
+            <span className="treasure-kicker">Curated drop</span>
             <span className="treasure-label">Final destination</span>
           </button>
         </div>
