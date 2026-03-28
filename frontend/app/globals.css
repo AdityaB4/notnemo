@@ -21,13 +21,22 @@
 
 html {
   min-height: 100%;
+  overflow-x: hidden;
+  overflow-y: hidden;
 }
 
 body {
   min-height: 100vh;
+  height: 100vh;
   margin: 0;
   font-family: var(--body-font);
   color: var(--ink);
+  overflow-x: hidden;
+  overflow-y: auto;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(255, 255, 255, 0.55), transparent 20%),
+    radial-gradient(circle at 86% 14%, rgba(202, 244, 255, 0.45), transparent 18%),
+    linear-gradient(180deg, var(--bg-top) 0%, var(--bg-mid) 46%, var(--bg-deep) 100%);
 }
 
 button,
@@ -474,7 +483,11 @@ select {
 }
 
 .exploring-page {
-  padding-bottom: 88px;
+  background: transparent;
+  padding: 56px 40px 24px;
+  padding-bottom: 0;
+  overflow: visible;
+  min-height: auto;
 }
 
 .map-shell,
@@ -524,15 +537,25 @@ select {
 
 .map-board {
   position: relative;
-  min-height: 780px;
-  border-radius: 40px;
+  min-height: 920px;
+  width: 100%;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  overflow: clip;
+}
+
+.map-board::before {
+  content: "";
+  position: absolute;
+  inset: 0;
   background:
-    radial-gradient(circle at 18% 22%, rgba(255, 255, 255, 0.14), transparent 18%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.08));
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  box-shadow: 0 20px 60px rgba(5, 59, 85, 0.12);
-  backdrop-filter: blur(10px);
-  overflow: hidden;
+    radial-gradient(circle at 20% 75%, rgba(255, 255, 255, 0.07), transparent 12%),
+    radial-gradient(circle at 85% 68%, rgba(255, 255, 255, 0.06), transparent 10%),
+    radial-gradient(circle at 14% 18%, rgba(255, 255, 255, 0.06), transparent 9%),
+    radial-gradient(circle at 74% 36%, rgba(255, 255, 255, 0.05), transparent 8%);
+  pointer-events: none;
 }
 
 .map-paths {
@@ -545,9 +568,9 @@ select {
 .map-route {
   fill: none;
   stroke-linecap: round;
-  stroke-width: 10;
-  stroke-dasharray: 16 28;
-  opacity: 0.9;
+  stroke-width: 9;
+  stroke-dasharray: 12 24;
+  opacity: 0.86;
 }
 
 .map-route-pink {
@@ -558,19 +581,76 @@ select {
   stroke: rgba(255, 255, 255, 0.95);
 }
 
+.map-route-white-soft {
+  stroke: rgba(255, 255, 255, 0.28);
+  stroke-width: 18;
+  stroke-dasharray: none;
+  opacity: 0.45;
+}
+
+.route-stop {
+  fill: #ffffff;
+  stroke: #ff5fb7;
+  stroke-width: 5;
+  filter: drop-shadow(0 0 10px rgba(255, 95, 183, 0.2));
+}
+
+.route-stop-final {
+  fill: #ffe79f;
+  stroke: #f39b2f;
+}
+
+.route-start {
+  fill: #9df3ff;
+  stroke: #ffffff;
+}
+
+.map-start-button {
+  position: absolute;
+  top: 9%;
+  left: 3.8%;
+  z-index: 2;
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-shadow: 0 8px 18px rgba(8, 50, 74, 0.18);
+  cursor: pointer;
+  transition: transform 180ms ease, opacity 180ms ease;
+}
+
+.map-start-button:hover {
+  transform: scale(1.06);
+  opacity: 1;
+}
+
 .map-fish {
   position: absolute;
-  top: 10%;
-  left: 6%;
   z-index: 2;
-  width: 120px;
-  animation: fishFloat 5.5s ease-in-out infinite;
+  width: 104px;
+  transform: translate(-30%, -42%);
+  transition:
+    top 900ms ease-in-out,
+    left 900ms ease-in-out;
+  will-change: top, left;
 }
 
 .map-fish-image {
   width: 100%;
   height: auto;
   filter: drop-shadow(0 16px 24px rgba(4, 58, 84, 0.14));
+  transition: transform 260ms ease;
+}
+
+.map-fish-image-forward {
+  transform: scaleX(1);
+}
+
+.map-fish-image-backward {
+  transform: scaleX(-1);
 }
 
 .map-island {
@@ -580,14 +660,10 @@ select {
   background: transparent;
   cursor: pointer;
   transform: translate(-50%, -50%);
+  display: grid;
+  gap: 10px;
+  justify-items: center;
   transition: transform 180ms ease, filter 180ms ease;
-}
-
-.map-island::before {
-  content: "";
-  display: block;
-  border: 6px solid #ff5fb7;
-  filter: drop-shadow(0 0 10px rgba(255, 95, 183, 0.18));
 }
 
 .map-island:hover,
@@ -595,54 +671,133 @@ select {
   transform: translate(-50%, -50%) scale(1.08);
 }
 
-.island-ring::before {
-  width: 96px;
-  height: 96px;
-  border-radius: 999px;
+.island-art {
+  position: relative;
+  width: 148px;
+  height: 112px;
+  display: block;
 }
 
-.island-square::before {
-  width: 92px;
-  height: 92px;
-  border-radius: 8px;
-}
-
-.island-triangle {
-  width: 104px;
-  height: 96px;
-}
-
-.island-triangle::before {
-  width: 0;
-  height: 0;
-  border-left: 52px solid transparent;
-  border-right: 52px solid transparent;
-  border-bottom: 96px solid #ff5fb7;
-  border-top: 0;
-  filter: none;
-}
-
-.island-triangle::after {
-  content: "";
+.island-shadow {
   position: absolute;
-  inset: 7px 12px 8px;
-  clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
-  background: rgba(86, 196, 218, 0.92);
+  left: 18px;
+  right: 18px;
+  bottom: 6px;
+  height: 18px;
+  border-radius: 999px;
+  background: rgba(9, 80, 104, 0.18);
+  filter: blur(8px);
 }
 
-.island-oval::before {
-  width: 88px;
-  height: 116px;
+.island-sand,
+.island-grass {
+  position: absolute;
+  inset: auto;
+  left: 18px;
+  width: 100px;
+  border-radius: 58% 42% 50% 50% / 55% 42% 58% 45%;
+}
+
+.island-sand {
+  bottom: 18px;
+  height: 54px;
+  background: linear-gradient(180deg, #ffe7a3 0%, #f6cb72 100%);
+  border: 4px solid rgba(192, 138, 43, 0.14);
+}
+
+.island-grass {
+  bottom: 46px;
+  height: 28px;
+  background: linear-gradient(180deg, #7bdc8c 0%, #35af61 100%);
+  clip-path: ellipse(46% 48% at 50% 58%);
+}
+
+.island-palm,
+.island-leaf {
+  position: absolute;
+}
+
+.island-palm {
+  width: 6px;
+  height: 28px;
+  bottom: 42px;
+  background: linear-gradient(180deg, #84541f 0%, #5c3811 100%);
   border-radius: 999px;
-  transform: rotate(24deg);
+  transform-origin: bottom center;
+}
+
+.island-palm-left {
+  left: 48px;
+  transform: rotate(-18deg);
+}
+
+.island-palm-right {
+  left: 78px;
+  transform: rotate(10deg);
+}
+
+.island-leaf {
+  width: 30px;
+  height: 14px;
+  background: linear-gradient(180deg, #59cb73 0%, #239351 100%);
+  border-radius: 999px 999px 999px 0;
+}
+
+.island-leaf-a {
+  left: 29px;
+  bottom: 67px;
+  transform: rotate(-26deg);
+}
+
+.island-leaf-b {
+  left: 42px;
+  bottom: 72px;
+  transform: rotate(-2deg);
+}
+
+.island-leaf-c {
+  left: 69px;
+  bottom: 69px;
+  transform: scaleX(-1) rotate(20deg);
+}
+
+.island-leaf-d {
+  left: 83px;
+  bottom: 63px;
+  transform: scaleX(-1) rotate(38deg);
+}
+
+.island-name {
+  max-width: 170px;
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 0.84rem;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: center;
+  text-shadow: 0 6px 18px rgba(8, 50, 74, 0.18);
+}
+
+.island-ring .island-art {
+  transform: rotate(-8deg);
+}
+
+.island-square .island-art {
+  transform: rotate(7deg) scale(0.96);
+}
+
+.island-triangle .island-art {
+  transform: rotate(-4deg) scale(0.92);
+}
+
+.island-oval .island-art {
+  transform: rotate(12deg) scale(1.04);
 }
 
 .island-popover {
   position: absolute;
-  top: 14%;
-  right: 6%;
+  transform: translate(0, -50%);
   z-index: 3;
-  width: min(320px, calc(100% - 48px));
+  width: min(280px, calc(100% - 48px));
   padding: 20px 22px;
   border-radius: 28px;
   background: rgba(255, 209, 242, 0.92);
@@ -678,8 +833,8 @@ select {
 
 .treasure-marker {
   position: absolute;
-  bottom: 11%;
-  left: 42%;
+  bottom: 5%;
+  left: 63%;
   z-index: 2;
   border: 0;
   background: transparent;
@@ -692,7 +847,7 @@ select {
 
 .treasure-x {
   font-family: var(--display-font);
-  font-size: clamp(4.4rem, 9vw, 7rem);
+  font-size: clamp(3rem, 7vw, 4.8rem);
   font-weight: 700;
   line-height: 0.8;
   text-shadow: 0 10px 18px rgba(8, 50, 74, 0.12);
@@ -871,8 +1026,7 @@ select {
   }
 
   .map-board {
-    min-height: 700px;
-    border-radius: 28px;
+    min-height: 760px;
   }
 
   .map-fish {
@@ -880,14 +1034,16 @@ select {
   }
 
   .island-popover {
-    top: 6%;
+    left: 4% !important;
     right: 4%;
-    left: 4%;
+    top: auto !important;
+    bottom: 4%;
+    transform: none;
     width: auto;
   }
 
   .treasure-marker {
-    left: 36%;
-    bottom: 9%;
+    left: 58%;
+    bottom: 5%;
   }
 }
