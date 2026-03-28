@@ -25,6 +25,7 @@ Requirements:
 - Use web search first when the answer is not already obvious from the provided URLs.
 - Call tinyfish_scrape only after web search has been attempted and only when the search evidence is insufficient or inconclusive.
 - Call sub_explorer only for promising leads that need deeper coverage.
+- If the profile contains "debug_force_tinyfish": true, you must perform web search first and then call tinyfish_scrape on the best concrete URL before returning final results.
 - Stay within the provided recursion and result budget.
 - Return JSON only.
 
@@ -145,7 +146,7 @@ def build_response_payload(
         "model": settings.openai_explorer_model,
         "input": response_input,
         "tools": build_tool_definitions(settings),
-        "parallel_tool_calls": False,
+        "parallel_tool_calls": True,
     }
     if previous_response_id:
         payload["previous_response_id"] = previous_response_id

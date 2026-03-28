@@ -15,7 +15,7 @@ class TinyFishError(RuntimeError):
     pass
 
 
-ProgressCallback = Callable[[TinyFishTraceEvent], Awaitable[None]]
+TinyFishEventCallback = Callable[[TinyFishTraceEvent], Awaitable[None]]
 
 
 class TinyFishClient:
@@ -26,7 +26,7 @@ class TinyFishClient:
         self,
         url: str,
         goal: str,
-        on_progress: ProgressCallback | None = None,
+        on_event: TinyFishEventCallback | None = None,
     ) -> TinyFishArtifact:
         normalized_url = canonicalize_url(url)
 
@@ -54,36 +54,39 @@ class TinyFishClient:
         result_json: Any | None = None
         complete_status: str | None = None
 
-        async with httpx.AsyncClient(timeout=httpx.Timeout(120.0, connect=10.0)) as client:
-            async with client.stream(
-                "POST",
-                endpoint,
-                headers=headers,
-                json=payload,
-            ) as response:
-                response.raise_for_status()
-                async for line in response.aiter_lines():
-                    if not line or not line.startswith("data: "):
-                        continue
-                    event = json.loads(line[6:])
-                    trace_event = TinyFishTraceEvent(
-                        type=event.get("type", "UNKNOWN"),
-                        purpose=event.get("purpose"),
-                        status=event.get("status"),
-                        raw_event=event,
-                    )
-                    trace.append(trace_event)
-                    if trace_event.type == "PROGRESS" and on_progress is not None:
-                        await on_progress(trace_event)
-                    if trace_event.type == "COMPLETE":
-                        complete_status = event.get("status")
-                        if complete_status != "COMPLETED":
-                            message = event.get("error", {}).get(
-                                "message", "TinyFish automation failed."
-                            )
-                            raise TinyFishError(message)
-                        result_json = event.get("resultJson")
-                        break
+        try:
+            async with httpx.AsyncClient(timeout=httpx.Timeout(600.0, connect=10.0)) as client:
+                async with client.stream(
+                    "POST",
+                    endpoint,
+                    headers=headers,
+                    json=payload,
+                ) as response:
+                    response.raise_for_status()
+                    async for line in response.aiter_lines():
+                        if not line or not line.startswith("data: "):
+                            continue
+                        event = json.loads(line[6:])
+                        trace_event = TinyFishTraceEvent(
+                            type=event.get("type", "UNKNOWN"),
+                            purpose=event.get("purpose"),
+                            status=event.get("status"),
+                            raw_event=event,
+                        )
+                        trace.append(trace_event)
+                        if on_event is not None:
+                            await on_event(trace_event)
+                        if trace_event.type == "COMPLETE":
+                            complete_status = event.get("status")
+                            if complete_status != "COMPLETED":
+                                message = event.get("error", {}).get(
+                                    "message", "TinyFish automation failed."
+                                )
+                                raise TinyFishError(message)
+                            result_json = event.get("resultJson")
+                            break
+        except httpx.HTTPError as exc:
+            raise TinyFishError(f"TinyFish transport error: {exc}") from exc
 
         summary = (
             f"TinyFish extracted structured data from {normalized_url}."
@@ -91,4 +94,3 @@ class TinyFishClient:
             else f"TinyFish finished for {normalized_url}."
         )
         return TinyFishArtifact(summary=summary, trace=trace, result_json=result_json)
-
