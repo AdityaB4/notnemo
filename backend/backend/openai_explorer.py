@@ -4,7 +4,8 @@ import json
 from dataclasses import dataclass
 from typing import Any
 
-import httpx
+import braintrust
+from openai import AsyncOpenAI
 
 from backend.config import Settings
 from backend.models import (
@@ -60,30 +61,31 @@ class OpenAIResponseError(RuntimeError):
 
 
 class OpenAIResponsesClient:
+    """Thin wrapper around the official OpenAI SDK, traced via braintrust.wrap_openai."""
+
     def __init__(self, settings: Settings):
         self._settings = settings
+        if settings.openai_api_key:
+            self._client: AsyncOpenAI | None = braintrust.wrap_openai(
+                AsyncOpenAI(
+                    api_key=settings.openai_api_key,
+                    base_url=settings.openai_base_url,
+                    timeout=180.0,
+                )
+            )
+        else:
+            self._client = None
 
     async def create_response(self, payload: dict[str, Any]) -> dict[str, Any]:
-        if not self._settings.openai_api_key:
+        if self._client is None:
             raise OpenAIResponseError("OPENAI_API_KEY is not configured.")
-
-        endpoint = f"{self._settings.openai_base_url.rstrip('/')}/responses"
-        headers = {
-            "Authorization": f"Bearer {self._settings.openai_api_key}",
-            "Content-Type": "application/json",
-        }
         try:
-            async with httpx.AsyncClient(timeout=httpx.Timeout(180.0, connect=10.0)) as client:
-                response = await client.post(endpoint, headers=headers, json=payload)
-                try:
-                    response.raise_for_status()
-                except httpx.HTTPStatusError as exc:
-                    raise OpenAIResponseError(
-                        f"OpenAI Responses API error: {exc.response.text}"
-                    ) from exc
-                return response.json()
-        except httpx.HTTPError as exc:
-            raise OpenAIResponseError(f"OpenAI transport error: {exc}") from exc
+            response = await self._client.responses.create(**payload)
+            return response.model_dump(mode="json")
+        except OpenAIResponseError:
+            raise
+        except Exception as exc:
+            raise OpenAIResponseError(f"OpenAI Responses API error: {exc}") from exc
 
 
 def build_initial_input(branch: ExplorerBranchInput) -> list[dict[str, Any]]:

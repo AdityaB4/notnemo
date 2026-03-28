@@ -24,7 +24,7 @@ class RestateIngressClient:
         async with httpx.AsyncClient(timeout=httpx.Timeout(20.0, connect=5.0)) as client:
             response = await client.post(
                 endpoint,
-                json={"uri": f"{self._settings.self_url.rstrip('/')}/restate", "use_http_11": True},
+                json={"uri": f"{self._settings.self_url.rstrip('/')}/restate", "use_http_11": True, "force": True},
             )
             self._raise_for_status(response)
 

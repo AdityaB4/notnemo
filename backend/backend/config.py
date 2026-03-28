@@ -56,6 +56,9 @@ class Settings:
     explorer_sse_poll_ms: int
     explorer_enum_tlds: tuple[str, ...]
     explorer_max_iterations: int
+    openai_embedding_model: str
+    cache_similarity_threshold: float
+    cache_replay_delay_seconds: float
     openapi_server_url: str | None
     braintrust_api_key: str | None
     braintrust_project: str
@@ -87,6 +90,9 @@ def get_settings() -> Settings:
         explorer_sse_poll_ms=_env_int("EXPLORER_SSE_POLL_MS", 250),
         explorer_enum_tlds=_env_csv("EXPLORER_ENUM_TLDS", "com,org,net,co"),
         explorer_max_iterations=_env_int("EXPLORER_MAX_ITERATIONS", 6),
+        openai_embedding_model=os.environ.get("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small"),
+        cache_similarity_threshold=float(os.environ.get("CACHE_SIMILARITY_THRESHOLD", "0.92")),
+        cache_replay_delay_seconds=float(os.environ.get("CACHE_REPLAY_DELAY_SECONDS", "5.0")),
         openapi_server_url=os.environ.get("OPENAPI_SERVER_URL"),
         braintrust_api_key=os.environ.get("BRAINTRUST_API_KEY"),
         braintrust_project=os.environ.get("BRAINTRUST_PROJECT", "notnemo"),
