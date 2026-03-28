@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import type { CSSProperties } from "react";
 import { useEffect, useRef, useState } from "react";
 
 const bubbles = [
@@ -88,6 +89,7 @@ export default function ExploringPage() {
   const [activeIsland, setActiveIsland] = useState<string | null>(null);
   const [fishFacing, setFishFacing] = useState<"forward" | "backward">("forward");
   const [showCurated, setShowCurated] = useState(false);
+  const [isRevealingCurated, setIsRevealingCurated] = useState(false);
   const [fishDock, setFishDock] = useState<{ top: string; left: string }>({
     top: "14%",
     left: "7%",
@@ -104,8 +106,26 @@ export default function ExploringPage() {
     curatedSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [showCurated]);
 
+  useEffect(() => {
+    if (!isRevealingCurated) {
+      return;
+    }
+
+    const revealTimer = window.setTimeout(() => {
+      setShowCurated(true);
+      setIsRevealingCurated(false);
+    }, 1350);
+
+    return () => window.clearTimeout(revealTimer);
+  }, [isRevealingCurated]);
+
   const scrollToCurated = () => {
-    setShowCurated(true);
+    if (showCurated || isRevealingCurated) {
+      setShowCurated(true);
+      return;
+    }
+
+    setIsRevealingCurated(true);
   };
 
   const moveFishToStart = () => {
@@ -278,6 +298,28 @@ export default function ExploringPage() {
             <span className="treasure-kicker">Curated drop</span>
             <span className="treasure-label">Final destination</span>
           </button>
+
+          {isRevealingCurated ? (
+            <div className="curated-reveal" aria-hidden="true">
+              <div className="curated-reveal-haze" />
+              {Array.from({ length: 84 }).map((_, index) => (
+                <span
+                  key={index}
+                  className="curated-reveal-bubble"
+                  style={
+                    {
+                      left: `${(index * 19) % 100}%`,
+                      bottom: `${-10 + ((index * 11) % 24)}%`,
+                      width: `${42 + (index % 8) * 22}px`,
+                      height: `${42 + (index % 8) * 22}px`,
+                      animationDelay: `${(index % 10) * 55}ms`,
+                      animationDuration: `${1050 + (index % 6) * 140}ms`,
+                    } as CSSProperties
+                  }
+                />
+              ))}
+            </div>
+          ) : null}
         </div>
       </section>
 
