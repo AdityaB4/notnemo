@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 const bubbles = [
   { left: "6%", size: 18, duration: 12, delay: 0 },
   { left: "14%", size: 12, duration: 16, delay: 4 },
@@ -51,9 +53,9 @@ export default function ExplorePage() {
               placeholder="Singapore, Kyoto, hidden streets in Seoul..."
             />
 
-            <button className="explore-button" type="button" aria-label="Continue">
+            <Link className="explore-button" href="/exploring" aria-label="Continue">
               Go
-            </button>
+            </Link>
           </div>
 
           <p className="explore-helper">
