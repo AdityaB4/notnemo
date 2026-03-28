@@ -1,0 +1,1056 @@
+openapi: 3.1.0
+info:
+  title: NotNemo Search API
+  description: API for launching durable niche-discovery search jobs and streaming
+    progress over SSE.
+  version: 0.1.0
+paths:
+  /api/search:
+    post:
+      tags:
+      - search
+      summary: Create Search Job
+      operationId: create_search_job_api_search_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchRequest'
+        required: true
+      responses:
+        '202':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchAcceptedResponse'
+        '502':
+          description: Restate ingress is unavailable or rejected the workflow submission.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/search/{job_id}:
+    get:
+      tags:
+      - search
+      summary: Get Search Job
+      operationId: get_search_job_api_search__job_id__get
+      parameters:
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Job Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchSnapshotResponse'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+          description: Not Found
+        '502':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+          description: Bad Gateway
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/search/{job_id}/events:
+    get:
+      tags:
+      - search
+      summary: Stream Search Events
+      operationId: stream_search_events_api_search__job_id__events_get
+      parameters:
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Job Id
+      - name: since
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+            minimum: 0
+          - type: 'null'
+          title: Since
+      - name: Last-Event-ID
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Last-Event-Id
+      responses:
+        '200':
+          description: Server-Sent Events stream. Each `data:` line contains a JSON
+            SearchEvent envelope.
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                format: event-stream
+              examples:
+                job.started:
+                  summary: Search job started
+                  value: 'event: job.started
+
+                    data: {"event_type":"job.started"}
+
+
+                    '
+                result.item:
+                  summary: Result item
+                  value: 'event: result.item
+
+                    data: {"event_type":"result.item","payload":{"result":{"url":"https://example.com"}}}
+
+
+                    '
+                tinyfish.progress:
+                  summary: TinyFish progress
+                  value: 'event: tinyfish.progress
+
+                    data: {"event_type":"tinyfish.progress","payload":{"url":"https://example.com","purpose":"Extracting
+                    products"}}
+
+
+                    '
+          x-event-models:
+          - $ref: '#/components/schemas/JobStartedEvent'
+          - $ref: '#/components/schemas/SeedsReadyEvent'
+          - $ref: '#/components/schemas/DomainsReadyEvent'
+          - $ref: '#/components/schemas/BranchStartedEvent'
+          - $ref: '#/components/schemas/TinyFishProgressEvent'
+          - $ref: '#/components/schemas/ResultItemEvent'
+          - $ref: '#/components/schemas/BranchCompletedEvent'
+          - $ref: '#/components/schemas/JobCompletedEvent'
+          - $ref: '#/components/schemas/JobFailedEvent'
+          - $ref: '#/components/schemas/KeepAliveEvent'
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+          description: Not Found
+        '502':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+          description: Bad Gateway
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /health:
+    get:
+      tags:
+      - meta
+      summary: Health
+      operationId: health_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  type: string
+                type: object
+                title: Response Health Health Get
+components:
+  schemas:
+    ApiError:
+      properties:
+        code:
+          type: string
+          title: Code
+        message:
+          type: string
+          title: Message
+        details:
+          anyOf:
+          - {}
+          - type: 'null'
+          title: Details
+      additionalProperties: false
+      type: object
+      required:
+      - code
+      - message
+      title: ApiError
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    JobError:
+      properties:
+        code:
+          type: string
+          title: Code
+        message:
+          type: string
+          title: Message
+        retryable:
+          type: boolean
+          title: Retryable
+          default: false
+        details:
+          anyOf:
+          - {}
+          - type: 'null'
+          title: Details
+      additionalProperties: false
+      type: object
+      required:
+      - code
+      - message
+      title: JobError
+    NormalizedQuery:
+      properties:
+        raw_query:
+          title: Raw Query
+        query_text:
+          type: string
+          title: Query Text
+        profile:
+          additionalProperties: true
+          type: object
+          title: Profile
+        keywords:
+          items:
+            type: string
+          type: array
+          title: Keywords
+      additionalProperties: false
+      type: object
+      required:
+      - raw_query
+      - query_text
+      title: NormalizedQuery
+    SearchAcceptedResponse:
+      properties:
+        job_id:
+          type: string
+          title: Job Id
+        status:
+          type: string
+          const: queued
+          title: Status
+          default: queued
+        snapshot_url:
+          type: string
+          title: Snapshot Url
+        events_url:
+          type: string
+          title: Events Url
+      additionalProperties: false
+      type: object
+      required:
+      - job_id
+      - snapshot_url
+      - events_url
+      title: SearchAcceptedResponse
+    SearchLimits:
+      properties:
+        max_depth:
+          type: integer
+          minimum: 0.0
+          title: Max Depth
+          default: 1
+        max_subexplorers:
+          type: integer
+          minimum: 0.0
+          title: Max Subexplorers
+          default: 2
+        max_results:
+          type: integer
+          maximum: 50.0
+          minimum: 1.0
+          title: Max Results
+          default: 10
+        seed_limit:
+          type: integer
+          maximum: 50.0
+          minimum: 0.0
+          title: Seed Limit
+          default: 8
+        domain_limit:
+          type: integer
+          maximum: 100.0
+          minimum: 0.0
+          title: Domain Limit
+          default: 24
+      additionalProperties: false
+      type: object
+      title: SearchLimits
+    SearchQuerySnapshot:
+      properties:
+        raw_query:
+          title: Raw Query
+        normalized:
+          $ref: '#/components/schemas/NormalizedQuery'
+      additionalProperties: false
+      type: object
+      required:
+      - raw_query
+      - normalized
+      title: SearchQuerySnapshot
+    SearchRequest:
+      properties:
+        query:
+          title: Query
+          description: Arbitrary JSON payload describing the niche query and optional
+            user profile.
+        limits:
+          $ref: '#/components/schemas/SearchLimits'
+        stream_tinyfish:
+          type: boolean
+          title: Stream Tinyfish
+          default: true
+      additionalProperties: false
+      type: object
+      required:
+      - query
+      title: SearchRequest
+    SearchResult:
+      properties:
+        result_id:
+          type: string
+          title: Result Id
+        url:
+          type: string
+          title: Url
+        description:
+          type: string
+          title: Description
+        source_kind:
+          type: string
+          enum:
+          - seed
+          - enumerated_domain
+          - web_search
+          - tinyfish
+          - sub_explorer
+          title: Source Kind
+        why_matched:
+          type: string
+          title: Why Matched
+        tags:
+          items:
+            type: string
+          type: array
+          title: Tags
+        confidence:
+          type: number
+          maximum: 1.0
+          minimum: 0.0
+          title: Confidence
+          default: 0.5
+        branch_id:
+          type: string
+          title: Branch Id
+        tinyfish:
+          anyOf:
+          - $ref: '#/components/schemas/TinyFishArtifact'
+          - type: 'null'
+      additionalProperties: false
+      type: object
+      required:
+      - result_id
+      - url
+      - description
+      - source_kind
+      - why_matched
+      - branch_id
+      title: SearchResult
+    SearchSnapshotResponse:
+      properties:
+        job_id:
+          type: string
+          title: Job Id
+        status:
+          type: string
+          enum:
+          - queued
+          - running
+          - completed
+          - failed
+          title: Status
+        query:
+          $ref: '#/components/schemas/SearchQuerySnapshot'
+        results:
+          items:
+            $ref: '#/components/schemas/SearchResult'
+          type: array
+          title: Results
+        errors:
+          items:
+            $ref: '#/components/schemas/JobError'
+          type: array
+          title: Errors
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      additionalProperties: false
+      type: object
+      required:
+      - job_id
+      - status
+      - query
+      - created_at
+      - updated_at
+      title: SearchSnapshotResponse
+    TinyFishArtifact:
+      properties:
+        summary:
+          type: string
+          title: Summary
+        trace:
+          items:
+            $ref: '#/components/schemas/TinyFishTraceEvent'
+          type: array
+          title: Trace
+        result_json:
+          anyOf:
+          - {}
+          - type: 'null'
+          title: Result Json
+      additionalProperties: false
+      type: object
+      required:
+      - summary
+      title: TinyFishArtifact
+    TinyFishTraceEvent:
+      properties:
+        type:
+          type: string
+          title: Type
+        purpose:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Purpose
+        status:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status
+        raw_event:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Raw Event
+      additionalProperties: false
+      type: object
+      required:
+      - type
+      title: TinyFishTraceEvent
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+    JobStartedPayload:
+      additionalProperties: false
+      properties:
+        status:
+          const: running
+          default: running
+          title: Status
+          type: string
+      title: JobStartedPayload
+      type: object
+    JobStartedEvent:
+      additionalProperties: false
+      properties:
+        seq:
+          title: Seq
+          type: integer
+        event_id:
+          title: Event Id
+          type: string
+        job_id:
+          title: Job Id
+          type: string
+        branch_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Branch Id
+        created_at:
+          format: date-time
+          title: Created At
+          type: string
+        event_type:
+          const: job.started
+          default: job.started
+          title: Event Type
+          type: string
+        payload:
+          $ref: '#/components/schemas/JobStartedPayload'
+      required:
+      - seq
+      - event_id
+      - job_id
+      - created_at
+      - payload
+      title: JobStartedEvent
+      type: object
+    SeedCandidate:
+      additionalProperties: false
+      properties:
+        url:
+          title: Url
+          type: string
+        description:
+          title: Description
+          type: string
+        tags:
+          items:
+            type: string
+          title: Tags
+          type: array
+        rationale:
+          title: Rationale
+          type: string
+      required:
+      - url
+      - description
+      - rationale
+      title: SeedCandidate
+      type: object
+    SeedsReadyPayload:
+      additionalProperties: false
+      properties:
+        seeds:
+          items:
+            $ref: '#/components/schemas/SeedCandidate'
+          title: Seeds
+          type: array
+      required:
+      - seeds
+      title: SeedsReadyPayload
+      type: object
+    SeedsReadyEvent:
+      additionalProperties: false
+      properties:
+        seq:
+          title: Seq
+          type: integer
+        event_id:
+          title: Event Id
+          type: string
+        job_id:
+          title: Job Id
+          type: string
+        branch_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Branch Id
+        created_at:
+          format: date-time
+          title: Created At
+          type: string
+        event_type:
+          const: seeds.ready
+          default: seeds.ready
+          title: Event Type
+          type: string
+        payload:
+          $ref: '#/components/schemas/SeedsReadyPayload'
+      required:
+      - seq
+      - event_id
+      - job_id
+      - created_at
+      - payload
+      title: SeedsReadyEvent
+      type: object
+    DomainsReadyPayload:
+      additionalProperties: false
+      properties:
+        domains:
+          items:
+            type: string
+          title: Domains
+          type: array
+      required:
+      - domains
+      title: DomainsReadyPayload
+      type: object
+    DomainsReadyEvent:
+      additionalProperties: false
+      properties:
+        seq:
+          title: Seq
+          type: integer
+        event_id:
+          title: Event Id
+          type: string
+        job_id:
+          title: Job Id
+          type: string
+        branch_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Branch Id
+        created_at:
+          format: date-time
+          title: Created At
+          type: string
+        event_type:
+          const: domains.ready
+          default: domains.ready
+          title: Event Type
+          type: string
+        payload:
+          $ref: '#/components/schemas/DomainsReadyPayload'
+      required:
+      - seq
+      - event_id
+      - job_id
+      - created_at
+      - payload
+      title: DomainsReadyEvent
+      type: object
+    BranchStartedPayload:
+      additionalProperties: false
+      properties:
+        depth:
+          title: Depth
+          type: integer
+        candidate_urls:
+          items:
+            type: string
+          title: Candidate Urls
+          type: array
+      required:
+      - depth
+      title: BranchStartedPayload
+      type: object
+    BranchStartedEvent:
+      additionalProperties: false
+      properties:
+        seq:
+          title: Seq
+          type: integer
+        event_id:
+          title: Event Id
+          type: string
+        job_id:
+          title: Job Id
+          type: string
+        branch_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Branch Id
+        created_at:
+          format: date-time
+          title: Created At
+          type: string
+        event_type:
+          const: branch.started
+          default: branch.started
+          title: Event Type
+          type: string
+        payload:
+          $ref: '#/components/schemas/BranchStartedPayload'
+      required:
+      - seq
+      - event_id
+      - job_id
+      - created_at
+      - payload
+      title: BranchStartedEvent
+      type: object
+    TinyFishProgressPayload:
+      additionalProperties: false
+      properties:
+        url:
+          title: Url
+          type: string
+        purpose:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Purpose
+        trace:
+          $ref: '#/components/schemas/TinyFishTraceEvent'
+      required:
+      - url
+      - trace
+      title: TinyFishProgressPayload
+      type: object
+    TinyFishProgressEvent:
+      additionalProperties: false
+      properties:
+        seq:
+          title: Seq
+          type: integer
+        event_id:
+          title: Event Id
+          type: string
+        job_id:
+          title: Job Id
+          type: string
+        branch_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Branch Id
+        created_at:
+          format: date-time
+          title: Created At
+          type: string
+        event_type:
+          const: tinyfish.progress
+          default: tinyfish.progress
+          title: Event Type
+          type: string
+        payload:
+          $ref: '#/components/schemas/TinyFishProgressPayload'
+      required:
+      - seq
+      - event_id
+      - job_id
+      - created_at
+      - payload
+      title: TinyFishProgressEvent
+      type: object
+    ResultItemPayload:
+      additionalProperties: false
+      properties:
+        result:
+          $ref: '#/components/schemas/SearchResult'
+      required:
+      - result
+      title: ResultItemPayload
+      type: object
+    ResultItemEvent:
+      additionalProperties: false
+      properties:
+        seq:
+          title: Seq
+          type: integer
+        event_id:
+          title: Event Id
+          type: string
+        job_id:
+          title: Job Id
+          type: string
+        branch_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Branch Id
+        created_at:
+          format: date-time
+          title: Created At
+          type: string
+        event_type:
+          const: result.item
+          default: result.item
+          title: Event Type
+          type: string
+        payload:
+          $ref: '#/components/schemas/ResultItemPayload'
+      required:
+      - seq
+      - event_id
+      - job_id
+      - created_at
+      - payload
+      title: ResultItemEvent
+      type: object
+    BranchCompletedPayload:
+      additionalProperties: false
+      properties:
+        summary:
+          $ref: '#/components/schemas/BranchSummary'
+      required:
+      - summary
+      title: BranchCompletedPayload
+      type: object
+    BranchSummary:
+      additionalProperties: false
+      properties:
+        branch_id:
+          title: Branch Id
+          type: string
+        depth:
+          title: Depth
+          type: integer
+        coverage_assessment:
+          title: Coverage Assessment
+          type: string
+        notes:
+          title: Notes
+          type: string
+        result_count:
+          title: Result Count
+          type: integer
+        follow_up_queries:
+          items:
+            type: string
+          title: Follow Up Queries
+          type: array
+      required:
+      - branch_id
+      - depth
+      - coverage_assessment
+      - notes
+      - result_count
+      title: BranchSummary
+      type: object
+    BranchCompletedEvent:
+      additionalProperties: false
+      properties:
+        seq:
+          title: Seq
+          type: integer
+        event_id:
+          title: Event Id
+          type: string
+        job_id:
+          title: Job Id
+          type: string
+        branch_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Branch Id
+        created_at:
+          format: date-time
+          title: Created At
+          type: string
+        event_type:
+          const: branch.completed
+          default: branch.completed
+          title: Event Type
+          type: string
+        payload:
+          $ref: '#/components/schemas/BranchCompletedPayload'
+      required:
+      - seq
+      - event_id
+      - job_id
+      - created_at
+      - payload
+      title: BranchCompletedEvent
+      type: object
+    JobCompletedPayload:
+      additionalProperties: false
+      properties:
+        status:
+          const: completed
+          default: completed
+          title: Status
+          type: string
+        result_count:
+          title: Result Count
+          type: integer
+      required:
+      - result_count
+      title: JobCompletedPayload
+      type: object
+    JobCompletedEvent:
+      additionalProperties: false
+      properties:
+        seq:
+          title: Seq
+          type: integer
+        event_id:
+          title: Event Id
+          type: string
+        job_id:
+          title: Job Id
+          type: string
+        branch_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Branch Id
+        created_at:
+          format: date-time
+          title: Created At
+          type: string
+        event_type:
+          const: job.completed
+          default: job.completed
+          title: Event Type
+          type: string
+        payload:
+          $ref: '#/components/schemas/JobCompletedPayload'
+      required:
+      - seq
+      - event_id
+      - job_id
+      - created_at
+      - payload
+      title: JobCompletedEvent
+      type: object
+    JobFailedPayload:
+      additionalProperties: false
+      properties:
+        error:
+          $ref: '#/components/schemas/JobError'
+      required:
+      - error
+      title: JobFailedPayload
+      type: object
+    JobFailedEvent:
+      additionalProperties: false
+      properties:
+        seq:
+          title: Seq
+          type: integer
+        event_id:
+          title: Event Id
+          type: string
+        job_id:
+          title: Job Id
+          type: string
+        branch_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Branch Id
+        created_at:
+          format: date-time
+          title: Created At
+          type: string
+        event_type:
+          const: job.failed
+          default: job.failed
+          title: Event Type
+          type: string
+        payload:
+          $ref: '#/components/schemas/JobFailedPayload'
+      required:
+      - seq
+      - event_id
+      - job_id
+      - created_at
+      - payload
+      title: JobFailedEvent
+      type: object
+    KeepAlivePayload:
+      additionalProperties: false
+      properties:
+        ts:
+          format: date-time
+          title: Ts
+          type: string
+      required:
+      - ts
+      title: KeepAlivePayload
+      type: object
+    KeepAliveEvent:
+      additionalProperties: false
+      properties:
+        seq:
+          title: Seq
+          type: integer
+        event_id:
+          title: Event Id
+          type: string
+        job_id:
+          title: Job Id
+          type: string
+        branch_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Branch Id
+        created_at:
+          format: date-time
+          title: Created At
+          type: string
+        event_type:
+          const: keepalive
+          default: keepalive
+          title: Event Type
+          type: string
+        payload:
+          $ref: '#/components/schemas/KeepAlivePayload'
+      required:
+      - seq
+      - event_id
+      - job_id
+      - created_at
+      - payload
+      title: KeepAliveEvent
+      type: object
