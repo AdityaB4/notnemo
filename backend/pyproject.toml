@@ -14,3 +14,6 @@ dependencies = [
     "restate-sdk>=0.16.0",
     "uvicorn>=0.42.0",
 ]
+
+[project.scripts]
+search-cli = "backend.manual_cli:main"

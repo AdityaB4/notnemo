@@ -84,7 +84,7 @@ def get_settings() -> Settings:
         explorer_max_results=_env_int("EXPLORER_MAX_RESULTS", 10),
         explorer_seed_limit=_env_int("EXPLORER_SEED_LIMIT", 8),
         explorer_domain_limit=_env_int("EXPLORER_DOMAIN_LIMIT", 24),
-        explorer_sse_poll_ms=_env_int("EXPLORER_SSE_POLL_MS", 750),
+        explorer_sse_poll_ms=_env_int("EXPLORER_SSE_POLL_MS", 250),
         explorer_enum_tlds=_env_csv("EXPLORER_ENUM_TLDS", "com,org,net,co"),
         explorer_max_iterations=_env_int("EXPLORER_MAX_ITERATIONS", 6),
         openapi_server_url=os.environ.get("OPENAPI_SERVER_URL"),

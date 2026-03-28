@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
+import time
+from contextlib import suppress
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -10,6 +13,7 @@ import restate
 
 from backend.config import get_settings
 from backend.domains import enumerate_candidate_urls
+from backend.ingress import RestateIngressClient, RestateIngressError
 from backend.models import (
     BranchSummary,
     EventAppendRequest,
@@ -28,6 +32,10 @@ from backend.models import (
     SearchResult,
     SearchResultDraft,
     SearchSnapshotResponse,
+    TinyFishProgressPayload,
+    TinyFishExecutionRequest,
+    TinyFishToolResult,
+    TinyFishTraceEvent,
 )
 from backend.normalize import normalize_query
 from backend.openai_explorer import (
@@ -48,6 +56,104 @@ logger = logging.getLogger(__name__)
 
 search_job_state = restate.VirtualObject("SearchJobState")
 explorer_workflow = restate.Workflow("ExplorerWorkflow")
+tinyfish_tasks = restate.Service("TinyFishTasks")
+greeter = restate.Service("Greeter")
+
+
+@greeter.handler()
+async def greet(ctx: restate.Context, name: str) -> str:
+    return f"Hello, {name}!"
+
+
+@tinyfish_tasks.handler()
+async def scrape_site(ctx: restate.Context, req: TinyFishExecutionRequest) -> TinyFishToolResult:
+    req = TinyFishExecutionRequest.model_validate(req)
+    settings = get_settings()
+    tinyfish_client = TinyFishClient(settings)
+    ingress_client = RestateIngressClient(settings)
+    event_counter = 0
+    last_event_at = time.monotonic()
+
+    async def on_event(trace_event: TinyFishTraceEvent) -> None:
+        nonlocal event_counter, last_event_at
+        if not req.stream_events:
+            return
+        last_event_at = time.monotonic()
+        event_counter += 1
+        payload_model = TinyFishProgressPayload(
+            url=canonicalize_url(req.url),
+            purpose=trace_event.purpose,
+            trace=trace_event,
+        )
+        try:
+            await ingress_client.call_virtual_object(
+                "SearchJobState",
+                req.job_id,
+                "append_event",
+                EventAppendRequest(
+                    event_type="tinyfish.progress",
+                    event_id=stable_id(
+                        req.job_id,
+                        req.branch_id,
+                        req.tool_call_id,
+                        "tinyfish.progress",
+                        event_counter,
+                    ),
+                    branch_id=req.branch_id,
+                    payload=payload_model,
+                ).model_dump(mode="json"),
+            )
+        except RestateIngressError:
+            return
+
+    heartbeat_task: asyncio.Task[None] | None = None
+    if req.stream_events:
+        async def emit_heartbeats() -> None:
+            while True:
+                await asyncio.sleep(5.0)
+                if time.monotonic() - last_event_at < 5.0:
+                    continue
+                await on_event(
+                    TinyFishTraceEvent(
+                        type="HEARTBEAT",
+                        purpose="TinyFish scrape still running",
+                        status="RUNNING",
+                        raw_event={
+                            "type": "HEARTBEAT",
+                            "status": "RUNNING",
+                            "synthetic": True,
+                        },
+                    )
+                )
+
+        heartbeat_task = asyncio.create_task(emit_heartbeats())
+
+    try:
+        artifact = await tinyfish_client.run_scrape(
+            req.url,
+            req.extraction_goal,
+            on_event=on_event,
+        )
+        return TinyFishToolResult(
+            status="completed",
+            url=canonicalize_url(req.url),
+            summary=artifact.summary,
+            result_json=artifact.result_json,
+            trace=artifact.trace,
+        )
+    except TinyFishError as exc:
+        return TinyFishToolResult(
+            status="error",
+            url=canonicalize_url(req.url),
+            message=str(exc),
+        )
+    finally:
+        if heartbeat_task is not None and not heartbeat_task.done():
+            heartbeat_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await heartbeat_task
+
+
 async def _get_state_list(ctx: restate.ObjectSharedContext | restate.ObjectContext, key: str) -> list[Any]:
     return await ctx.get(key, type_hint=list) or []
 
@@ -300,9 +406,9 @@ class WorkflowCallbacks:
             arg=result,
         )
 
-    async def run_sub_explorer(
+    def start_sub_explorer(
         self, focus_query: str, urls: list[str], rationale: str
-    ) -> BranchSummary:
+    ):
         if self.branch.depth >= self.branch.limits.max_depth:
             raise ValueError("Sub-explorer depth budget exhausted.")
         if self.runtime.child_counter >= self.branch.limits.max_subexplorers:
@@ -327,7 +433,15 @@ class WorkflowCallbacks:
             limits=self.branch.limits,
             stream_tinyfish=self.branch.stream_tinyfish,
         )
-        return await self.ctx.workflow_call(run_explorer, key=child_key, arg=child_branch)
+        return self.ctx.workflow_call(run_explorer, key=child_key, arg=child_branch)
+
+
+@dataclass(slots=True)
+class PendingToolInvocation:
+    index: int
+    name: str
+    call_id: str
+    future: Any
 
 
 async def _run_openai_loop(
@@ -337,7 +451,6 @@ async def _run_openai_loop(
     settings = get_settings()
     callbacks = WorkflowCallbacks(ctx=ctx, branch=branch)
     openai_client = OpenAIResponsesClient(settings)
-    tinyfish_client = TinyFishClient(settings)
 
     span = braintrust.start_span(
         name="explorer_loop",
@@ -353,7 +466,7 @@ async def _run_openai_loop(
 
     try:
         summary = await _run_openai_loop_inner(
-            ctx, branch, settings, callbacks, openai_client, tinyfish_client, span,
+            ctx, branch, settings, callbacks, openai_client, span,
         )
         span.log(
             output={
@@ -377,7 +490,6 @@ async def _run_openai_loop_inner(
     settings,
     callbacks: WorkflowCallbacks,
     openai_client: OpenAIResponsesClient,
-    tinyfish_client: TinyFishClient,
     parent_span: braintrust.Span,
 ) -> BranchSummary:
     if not settings.openai_api_key:
@@ -454,62 +566,95 @@ async def _run_openai_loop_inner(
 
         function_calls = extract_function_calls(response)
         if function_calls:
-            tool_outputs: list[dict[str, Any]] = []
-            for tool_call in function_calls:
-                tool_span = parent_span.start_span(
-                    name=f"tool_{tool_call.name}",
-                    span_attributes={"type": "tool"},
-                    input={"call_id": tool_call.call_id, "arguments": tool_call.arguments},
-                )
+            tool_outputs: list[dict[str, Any] | None] = [None] * len(function_calls)
+            pending_invocations: list[PendingToolInvocation] = []
+
+            for index, tool_call in enumerate(function_calls):
                 if tool_call.name == "tinyfish_scrape":
                     if not callbacks.runtime.web_search_seen:
-                        output = {
+                        tool_outputs[index] = {
                             "status": "rejected",
                             "reason": "web search must be attempted before tinyfish_scrape.",
                         }
                     else:
                         try:
-                            url = tool_call.arguments["url"]
-                            goal = tool_call.arguments["extraction_goal"]
-                            scrape_name = f"tinyfish-scrape-{stable_id(url, goal)}"
-                            artifact = await ctx.run_typed(
-                                scrape_name,
-                                tinyfish_client.run_scrape,
-                                url=url,
-                                goal=goal,
+                            future = ctx.service_call(
+                                scrape_site,
+                                arg=TinyFishExecutionRequest(
+                                    job_id=branch.job_id,
+                                    branch_id=branch.branch_id,
+                                    tool_call_id=tool_call.call_id or stable_id(
+                                        branch.job_id,
+                                        branch.branch_id,
+                                        "tinyfish",
+                                        index,
+                                    ),
+                                    url=tool_call.arguments["url"],
+                                    extraction_goal=tool_call.arguments["extraction_goal"],
+                                    stream_events=branch.stream_tinyfish,
+                                ),
                             )
-                            output = {
-                                "status": "completed",
-                                "url": canonicalize_url(url),
-                                "summary": artifact.summary,
-                                "result_json": artifact.result_json,
-                                "trace": [item.model_dump(mode="json") for item in artifact.trace],
-                            }
-                        except (KeyError, TinyFishError) as exc:
-                            output = {"status": "error", "message": str(exc)}
+                            pending_invocations.append(
+                                PendingToolInvocation(
+                                    index=index,
+                                    name=tool_call.name,
+                                    call_id=tool_call.call_id,
+                                    future=future,
+                                )
+                            )
+                        except KeyError as exc:
+                            tool_outputs[index] = {"status": "error", "message": str(exc)}
                 elif tool_call.name == "sub_explorer":
                     try:
-                        summary = await callbacks.run_sub_explorer(
+                        future = callbacks.start_sub_explorer(
                             focus_query=tool_call.arguments["focus_query"],
                             urls=tool_call.arguments.get("urls", []),
                             rationale=tool_call.arguments["rationale"],
                         )
-                        output = {"status": "completed", "summary": summary.model_dump(mode="json")}
+                        pending_invocations.append(
+                            PendingToolInvocation(
+                                index=index,
+                                name=tool_call.name,
+                                call_id=tool_call.call_id,
+                                future=future,
+                            )
+                        )
                     except (KeyError, ValueError) as exc:
-                        output = {"status": "rejected", "reason": str(exc)}
+                        tool_outputs[index] = {"status": "rejected", "reason": str(exc)}
                 else:
-                    output = {"status": "rejected", "reason": f"Unsupported tool {tool_call.name}"}
-
-                tool_span.log(output=output)
-                tool_span.end()
-                tool_outputs.append(
-                    {
-                        "type": "function_call_output",
-                        "call_id": tool_call.call_id,
-                        "output": json.dumps(output, ensure_ascii=True),
+                    tool_outputs[index] = {
+                        "status": "rejected",
+                        "reason": f"Unsupported tool {tool_call.name}",
                     }
-                )
-            response_input = tool_outputs
+
+            for invocation in pending_invocations:
+                try:
+                    if invocation.name == "tinyfish_scrape":
+                        tool_result = await invocation.future
+                        tool_result = TinyFishToolResult.model_validate(tool_result)
+                        output = tool_result.model_dump(mode="json")
+                    elif invocation.name == "sub_explorer":
+                        summary = await invocation.future
+                        summary = BranchSummary.model_validate(summary)
+                        output = {
+                            "status": "completed",
+                            "summary": summary.model_dump(mode="json"),
+                        }
+                    else:
+                        output = {
+                            "status": "rejected",
+                            "reason": f"Unsupported tool {invocation.name}",
+                        }
+                except Exception as exc:
+                    output = {"status": "error", "message": str(exc)}
+
+                tool_outputs[invocation.index] = {
+                    "type": "function_call_output",
+                    "call_id": invocation.call_id,
+                    "output": json.dumps(output, ensure_ascii=True),
+                }
+
+            response_input = [item for item in tool_outputs if item is not None]
             continue
 
         outcome = parse_branch_outcome(response)
@@ -658,4 +803,4 @@ async def run_explorer(ctx: restate.WorkflowContext, branch: ExplorerBranchInput
         raise
 
 
-SERVICES = [search_job_state, explorer_workflow]
+SERVICES = [greeter, search_job_state, explorer_workflow, tinyfish_tasks]

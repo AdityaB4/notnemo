@@ -209,6 +209,24 @@ class TinyFishToolRequest(StrictModel):
     extraction_goal: str
 
 
+class TinyFishExecutionRequest(StrictModel):
+    job_id: str
+    branch_id: str
+    tool_call_id: str
+    url: str
+    extraction_goal: str
+    stream_events: bool = True
+
+
+class TinyFishToolResult(StrictModel):
+    status: Literal["completed", "error", "rejected"]
+    url: str
+    summary: str = ""
+    result_json: Any | None = None
+    trace: list[TinyFishTraceEvent] = Field(default_factory=list)
+    message: str | None = None
+
+
 class SubExplorerToolRequest(StrictModel):
     focus_query: str
     urls: list[str] = Field(default_factory=list)
@@ -315,4 +333,3 @@ class JobFailedEvent(StreamEventBase):
 class KeepAliveEvent(StreamEventBase):
     event_type: Literal["keepalive"] = "keepalive"
     payload: KeepAlivePayload
-
