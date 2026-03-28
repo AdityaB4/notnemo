@@ -5,6 +5,7 @@ import logging
 from contextlib import asynccontextmanager, suppress
 
 import asyncpg
+import braintrust
 from fastapi import FastAPI
 
 from backend.config import get_settings
@@ -54,6 +55,12 @@ async def lifespan(app: FastAPI):
                 )
                 """
             )
+    if settings.braintrust_api_key:
+        braintrust.init_logger(
+            project=settings.braintrust_project,
+            api_key=settings.braintrust_api_key,
+        )
+        logger.info("Braintrust tracing enabled for project %s", settings.braintrust_project)
     if settings.restate_auto_register:
         registration_task = asyncio.create_task(_register_with_retry(settings))
     yield

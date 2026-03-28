@@ -256,6 +256,10 @@ The hackathon build is successful when:
 - the UI clearly communicates why results are relevant
 - the full flow is stable enough for a live demo
 
+## Testing
+
+No tests needed, this is a hackathon project.
+
 ## Non-Goals For V1
 
 Avoid spending hackathon time on:
