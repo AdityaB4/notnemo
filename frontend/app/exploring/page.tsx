@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 const bubbles = [
@@ -301,6 +302,13 @@ export default function ExploringPage() {
                 <p>{website.reason}</p>
               </article>
             ))}
+          </div>
+
+          <div className="curated-cta">
+            <p>Want to explore again?</p>
+            <Link className="curated-cta-button" href="/explore">
+              Explore another place
+            </Link>
           </div>
         </section>
       ) : null}
