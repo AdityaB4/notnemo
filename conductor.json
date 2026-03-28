@@ -1,5 +1,6 @@
 {
   "scripts": {
-    "setup": "./scripts/setup.sh"
+    "setup": "./scripts/setup.sh",
+    "run-backend": "./scripts/run-backend.sh"
   }
 }
