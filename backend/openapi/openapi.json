@@ -1,0 +1,1546 @@
+{
+  "components": {
+    "schemas": {
+      "ApiError": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "details": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ApiError",
+        "type": "object"
+      },
+      "BranchCompletedEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "branch_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Branch Id"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "event_id": {
+            "title": "Event Id",
+            "type": "string"
+          },
+          "event_type": {
+            "const": "branch.completed",
+            "default": "branch.completed",
+            "title": "Event Type",
+            "type": "string"
+          },
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/BranchCompletedPayload"
+          },
+          "seq": {
+            "title": "Seq",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "seq",
+          "event_id",
+          "job_id",
+          "created_at",
+          "payload"
+        ],
+        "title": "BranchCompletedEvent",
+        "type": "object"
+      },
+      "BranchCompletedPayload": {
+        "additionalProperties": false,
+        "properties": {
+          "summary": {
+            "$ref": "#/components/schemas/BranchSummary"
+          }
+        },
+        "required": [
+          "summary"
+        ],
+        "title": "BranchCompletedPayload",
+        "type": "object"
+      },
+      "BranchStartedEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "branch_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Branch Id"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "event_id": {
+            "title": "Event Id",
+            "type": "string"
+          },
+          "event_type": {
+            "const": "branch.started",
+            "default": "branch.started",
+            "title": "Event Type",
+            "type": "string"
+          },
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/BranchStartedPayload"
+          },
+          "seq": {
+            "title": "Seq",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "seq",
+          "event_id",
+          "job_id",
+          "created_at",
+          "payload"
+        ],
+        "title": "BranchStartedEvent",
+        "type": "object"
+      },
+      "BranchStartedPayload": {
+        "additionalProperties": false,
+        "properties": {
+          "candidate_urls": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Candidate Urls",
+            "type": "array"
+          },
+          "depth": {
+            "title": "Depth",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "depth"
+        ],
+        "title": "BranchStartedPayload",
+        "type": "object"
+      },
+      "BranchSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "branch_id": {
+            "title": "Branch Id",
+            "type": "string"
+          },
+          "coverage_assessment": {
+            "title": "Coverage Assessment",
+            "type": "string"
+          },
+          "depth": {
+            "title": "Depth",
+            "type": "integer"
+          },
+          "follow_up_queries": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Follow Up Queries",
+            "type": "array"
+          },
+          "notes": {
+            "title": "Notes",
+            "type": "string"
+          },
+          "result_count": {
+            "title": "Result Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "branch_id",
+          "depth",
+          "coverage_assessment",
+          "notes",
+          "result_count"
+        ],
+        "title": "BranchSummary",
+        "type": "object"
+      },
+      "DomainsReadyEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "branch_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Branch Id"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "event_id": {
+            "title": "Event Id",
+            "type": "string"
+          },
+          "event_type": {
+            "const": "domains.ready",
+            "default": "domains.ready",
+            "title": "Event Type",
+            "type": "string"
+          },
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/DomainsReadyPayload"
+          },
+          "seq": {
+            "title": "Seq",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "seq",
+          "event_id",
+          "job_id",
+          "created_at",
+          "payload"
+        ],
+        "title": "DomainsReadyEvent",
+        "type": "object"
+      },
+      "DomainsReadyPayload": {
+        "additionalProperties": false,
+        "properties": {
+          "domains": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Domains",
+            "type": "array"
+          }
+        },
+        "required": [
+          "domains"
+        ],
+        "title": "DomainsReadyPayload",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "JobCompletedEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "branch_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Branch Id"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "event_id": {
+            "title": "Event Id",
+            "type": "string"
+          },
+          "event_type": {
+            "const": "job.completed",
+            "default": "job.completed",
+            "title": "Event Type",
+            "type": "string"
+          },
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/JobCompletedPayload"
+          },
+          "seq": {
+            "title": "Seq",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "seq",
+          "event_id",
+          "job_id",
+          "created_at",
+          "payload"
+        ],
+        "title": "JobCompletedEvent",
+        "type": "object"
+      },
+      "JobCompletedPayload": {
+        "additionalProperties": false,
+        "properties": {
+          "result_count": {
+            "title": "Result Count",
+            "type": "integer"
+          },
+          "status": {
+            "const": "completed",
+            "default": "completed",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result_count"
+        ],
+        "title": "JobCompletedPayload",
+        "type": "object"
+      },
+      "JobError": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "details": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "retryable": {
+            "default": false,
+            "title": "Retryable",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "JobError",
+        "type": "object"
+      },
+      "JobFailedEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "branch_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Branch Id"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "event_id": {
+            "title": "Event Id",
+            "type": "string"
+          },
+          "event_type": {
+            "const": "job.failed",
+            "default": "job.failed",
+            "title": "Event Type",
+            "type": "string"
+          },
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/JobFailedPayload"
+          },
+          "seq": {
+            "title": "Seq",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "seq",
+          "event_id",
+          "job_id",
+          "created_at",
+          "payload"
+        ],
+        "title": "JobFailedEvent",
+        "type": "object"
+      },
+      "JobFailedPayload": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/JobError"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "title": "JobFailedPayload",
+        "type": "object"
+      },
+      "JobStartedEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "branch_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Branch Id"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "event_id": {
+            "title": "Event Id",
+            "type": "string"
+          },
+          "event_type": {
+            "const": "job.started",
+            "default": "job.started",
+            "title": "Event Type",
+            "type": "string"
+          },
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/JobStartedPayload"
+          },
+          "seq": {
+            "title": "Seq",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "seq",
+          "event_id",
+          "job_id",
+          "created_at",
+          "payload"
+        ],
+        "title": "JobStartedEvent",
+        "type": "object"
+      },
+      "JobStartedPayload": {
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "const": "running",
+            "default": "running",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "title": "JobStartedPayload",
+        "type": "object"
+      },
+      "KeepAliveEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "branch_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Branch Id"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "event_id": {
+            "title": "Event Id",
+            "type": "string"
+          },
+          "event_type": {
+            "const": "keepalive",
+            "default": "keepalive",
+            "title": "Event Type",
+            "type": "string"
+          },
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/KeepAlivePayload"
+          },
+          "seq": {
+            "title": "Seq",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "seq",
+          "event_id",
+          "job_id",
+          "created_at",
+          "payload"
+        ],
+        "title": "KeepAliveEvent",
+        "type": "object"
+      },
+      "KeepAlivePayload": {
+        "additionalProperties": false,
+        "properties": {
+          "ts": {
+            "format": "date-time",
+            "title": "Ts",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ts"
+        ],
+        "title": "KeepAlivePayload",
+        "type": "object"
+      },
+      "NormalizedQuery": {
+        "additionalProperties": false,
+        "properties": {
+          "keywords": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Keywords",
+            "type": "array"
+          },
+          "profile": {
+            "additionalProperties": true,
+            "title": "Profile",
+            "type": "object"
+          },
+          "query_text": {
+            "title": "Query Text",
+            "type": "string"
+          },
+          "raw_query": {
+            "title": "Raw Query"
+          }
+        },
+        "required": [
+          "raw_query",
+          "query_text"
+        ],
+        "title": "NormalizedQuery",
+        "type": "object"
+      },
+      "ResultItemEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "branch_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Branch Id"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "event_id": {
+            "title": "Event Id",
+            "type": "string"
+          },
+          "event_type": {
+            "const": "result.item",
+            "default": "result.item",
+            "title": "Event Type",
+            "type": "string"
+          },
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/ResultItemPayload"
+          },
+          "seq": {
+            "title": "Seq",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "seq",
+          "event_id",
+          "job_id",
+          "created_at",
+          "payload"
+        ],
+        "title": "ResultItemEvent",
+        "type": "object"
+      },
+      "ResultItemPayload": {
+        "additionalProperties": false,
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/SearchResult"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "title": "ResultItemPayload",
+        "type": "object"
+      },
+      "SearchAcceptedResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "events_url": {
+            "title": "Events Url",
+            "type": "string"
+          },
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "snapshot_url": {
+            "title": "Snapshot Url",
+            "type": "string"
+          },
+          "status": {
+            "const": "queued",
+            "default": "queued",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id",
+          "snapshot_url",
+          "events_url"
+        ],
+        "title": "SearchAcceptedResponse",
+        "type": "object"
+      },
+      "SearchLimits": {
+        "additionalProperties": false,
+        "properties": {
+          "domain_limit": {
+            "default": 24,
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Domain Limit",
+            "type": "integer"
+          },
+          "max_depth": {
+            "default": 1,
+            "minimum": 0.0,
+            "title": "Max Depth",
+            "type": "integer"
+          },
+          "max_results": {
+            "default": 10,
+            "maximum": 50.0,
+            "minimum": 1.0,
+            "title": "Max Results",
+            "type": "integer"
+          },
+          "max_subexplorers": {
+            "default": 2,
+            "minimum": 0.0,
+            "title": "Max Subexplorers",
+            "type": "integer"
+          },
+          "seed_limit": {
+            "default": 8,
+            "maximum": 50.0,
+            "minimum": 0.0,
+            "title": "Seed Limit",
+            "type": "integer"
+          }
+        },
+        "title": "SearchLimits",
+        "type": "object"
+      },
+      "SearchQuerySnapshot": {
+        "additionalProperties": false,
+        "properties": {
+          "normalized": {
+            "$ref": "#/components/schemas/NormalizedQuery"
+          },
+          "raw_query": {
+            "title": "Raw Query"
+          }
+        },
+        "required": [
+          "raw_query",
+          "normalized"
+        ],
+        "title": "SearchQuerySnapshot",
+        "type": "object"
+      },
+      "SearchRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "limits": {
+            "$ref": "#/components/schemas/SearchLimits"
+          },
+          "query": {
+            "description": "Arbitrary JSON payload describing the niche query and optional user profile.",
+            "title": "Query"
+          },
+          "stream_tinyfish": {
+            "default": true,
+            "title": "Stream Tinyfish",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "title": "SearchRequest",
+        "type": "object"
+      },
+      "SearchResult": {
+        "additionalProperties": false,
+        "properties": {
+          "branch_id": {
+            "title": "Branch Id",
+            "type": "string"
+          },
+          "confidence": {
+            "default": 0.5,
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Confidence",
+            "type": "number"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "result_id": {
+            "title": "Result Id",
+            "type": "string"
+          },
+          "source_kind": {
+            "enum": [
+              "seed",
+              "enumerated_domain",
+              "web_search",
+              "tinyfish",
+              "sub_explorer"
+            ],
+            "title": "Source Kind",
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          },
+          "tinyfish": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TinyFishArtifact"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          },
+          "why_matched": {
+            "title": "Why Matched",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result_id",
+          "url",
+          "description",
+          "source_kind",
+          "why_matched",
+          "branch_id"
+        ],
+        "title": "SearchResult",
+        "type": "object"
+      },
+      "SearchSnapshotResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/JobError"
+            },
+            "title": "Errors",
+            "type": "array"
+          },
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "query": {
+            "$ref": "#/components/schemas/SearchQuerySnapshot"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/SearchResult"
+            },
+            "title": "Results",
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "running",
+              "completed",
+              "failed"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id",
+          "status",
+          "query",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "SearchSnapshotResponse",
+        "type": "object"
+      },
+      "SeedCandidate": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "rationale": {
+            "title": "Rationale",
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "description",
+          "rationale"
+        ],
+        "title": "SeedCandidate",
+        "type": "object"
+      },
+      "SeedsReadyEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "branch_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Branch Id"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "event_id": {
+            "title": "Event Id",
+            "type": "string"
+          },
+          "event_type": {
+            "const": "seeds.ready",
+            "default": "seeds.ready",
+            "title": "Event Type",
+            "type": "string"
+          },
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/SeedsReadyPayload"
+          },
+          "seq": {
+            "title": "Seq",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "seq",
+          "event_id",
+          "job_id",
+          "created_at",
+          "payload"
+        ],
+        "title": "SeedsReadyEvent",
+        "type": "object"
+      },
+      "SeedsReadyPayload": {
+        "additionalProperties": false,
+        "properties": {
+          "seeds": {
+            "items": {
+              "$ref": "#/components/schemas/SeedCandidate"
+            },
+            "title": "Seeds",
+            "type": "array"
+          }
+        },
+        "required": [
+          "seeds"
+        ],
+        "title": "SeedsReadyPayload",
+        "type": "object"
+      },
+      "TinyFishArtifact": {
+        "additionalProperties": false,
+        "properties": {
+          "result_json": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result Json"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "trace": {
+            "items": {
+              "$ref": "#/components/schemas/TinyFishTraceEvent"
+            },
+            "title": "Trace",
+            "type": "array"
+          }
+        },
+        "required": [
+          "summary"
+        ],
+        "title": "TinyFishArtifact",
+        "type": "object"
+      },
+      "TinyFishProgressEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "branch_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Branch Id"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "event_id": {
+            "title": "Event Id",
+            "type": "string"
+          },
+          "event_type": {
+            "const": "tinyfish.progress",
+            "default": "tinyfish.progress",
+            "title": "Event Type",
+            "type": "string"
+          },
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/TinyFishProgressPayload"
+          },
+          "seq": {
+            "title": "Seq",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "seq",
+          "event_id",
+          "job_id",
+          "created_at",
+          "payload"
+        ],
+        "title": "TinyFishProgressEvent",
+        "type": "object"
+      },
+      "TinyFishProgressPayload": {
+        "additionalProperties": false,
+        "properties": {
+          "purpose": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Purpose"
+          },
+          "trace": {
+            "$ref": "#/components/schemas/TinyFishTraceEvent"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "trace"
+        ],
+        "title": "TinyFishProgressPayload",
+        "type": "object"
+      },
+      "TinyFishTraceEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "purpose": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Purpose"
+          },
+          "raw_event": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw Event"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "title": "TinyFishTraceEvent",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "description": "API for launching durable niche-discovery search jobs and streaming progress over SSE.",
+    "title": "NotNemo Search API",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/search": {
+      "post": {
+        "operationId": "create_search_job_api_search_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchAcceptedResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Restate ingress is unavailable or rejected the workflow submission."
+          }
+        },
+        "summary": "Create Search Job",
+        "tags": [
+          "search"
+        ]
+      }
+    },
+    "/api/search/{job_id}": {
+      "get": {
+        "operationId": "get_search_job_api_search__job_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchSnapshotResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          }
+        },
+        "summary": "Get Search Job",
+        "tags": [
+          "search"
+        ]
+      }
+    },
+    "/api/search/{job_id}/events": {
+      "get": {
+        "operationId": "stream_search_events_api_search__job_id__events_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "since",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Since"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Last-Event-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Last-Event-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/event-stream": {
+                "examples": {
+                  "job.started": {
+                    "summary": "Search job started",
+                    "value": "event: job.started\ndata: {\"event_type\":\"job.started\"}\n\n"
+                  },
+                  "result.item": {
+                    "summary": "Result item",
+                    "value": "event: result.item\ndata: {\"event_type\":\"result.item\",\"payload\":{\"result\":{\"url\":\"https://example.com\"}}}\n\n"
+                  },
+                  "tinyfish.progress": {
+                    "summary": "TinyFish progress",
+                    "value": "event: tinyfish.progress\ndata: {\"event_type\":\"tinyfish.progress\",\"payload\":{\"url\":\"https://example.com\",\"purpose\":\"Extracting products\"}}\n\n"
+                  }
+                },
+                "schema": {
+                  "format": "event-stream",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Server-Sent Events stream. Each `data:` line contains a JSON SearchEvent envelope.",
+            "x-event-models": [
+              {
+                "$ref": "#/components/schemas/JobStartedEvent"
+              },
+              {
+                "$ref": "#/components/schemas/SeedsReadyEvent"
+              },
+              {
+                "$ref": "#/components/schemas/DomainsReadyEvent"
+              },
+              {
+                "$ref": "#/components/schemas/BranchStartedEvent"
+              },
+              {
+                "$ref": "#/components/schemas/TinyFishProgressEvent"
+              },
+              {
+                "$ref": "#/components/schemas/ResultItemEvent"
+              },
+              {
+                "$ref": "#/components/schemas/BranchCompletedEvent"
+              },
+              {
+                "$ref": "#/components/schemas/JobCompletedEvent"
+              },
+              {
+                "$ref": "#/components/schemas/JobFailedEvent"
+              },
+              {
+                "$ref": "#/components/schemas/KeepAliveEvent"
+              }
+            ]
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          }
+        },
+        "summary": "Stream Search Events",
+        "tags": [
+          "search"
+        ]
+      }
+    },
+    "/db": {
+      "get": {
+        "operationId": "db_check_db_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "integer"
+                      }
+                    ]
+                  },
+                  "title": "Response Db Check Db Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Db Check",
+        "tags": [
+          "meta"
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Health Health Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health",
+        "tags": [
+          "meta"
+        ]
+      }
+    }
+  }
+}
