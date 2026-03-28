@@ -5,7 +5,6 @@ FastAPI backend with [Restate](https://restate.dev/) for durable orchestration.
 ## Prerequisites
 
 - [uv](https://docs.astral.sh/uv/)
-- Restate server: `brew install restatedev/tap/restate-server`
 
 ## Setup
 
@@ -15,20 +14,21 @@ Install dependencies:
 uv sync
 ```
 
-Recommended environment variables:
+Create a `.env.local` file in the backend directory with your secrets:
 
 ```bash
-export OPENAI_API_KEY=...
-export TINYFISH_API_KEY=...
+OPENAI_API_KEY=...
+TINYFISH_API_KEY=...
+```
+
+Optional environment variables (with defaults):
+
+```bash
 export RESTATE_INGRESS_URL=http://localhost:8080
 export RESTATE_ADMIN_URL=http://localhost:9070
 export SELF_URL=http://localhost:8000
-```
-
-Optional:
-
-```bash
 export RESTATE_AUTO_REGISTER=true
+export DATABASE_URL=
 export OPENAI_EXPLORER_MODEL=gpt-5
 export EXPLORER_MAX_DEPTH=1
 export EXPLORER_MAX_SUB_EXPLORERS=2
@@ -37,38 +37,28 @@ export EXPLORER_SEED_LIMIT=8
 export EXPLORER_DOMAIN_LIMIT=24
 export EXPLORER_SSE_POLL_MS=250
 export EXPLORER_ENUM_TLDS=com,org,net,co
+export BRAINTRUST_API_KEY=
+export BRAINTRUST_PROJECT=notnemo
 ```
 
 ## Running
-
-1. Start Restate:
-
-```bash
-restate-server
-```
-
-Or with Docker:
-
-```bash
-docker run --name restate_dev --rm -p 8080:8080 -p 9070:9070 -p 9071:9071 docker.io/restatedev/restate:latest
-```
-
-2. Start the backend:
 
 ```bash
 uv run uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
-The app auto-registers its `/restate` deployment on startup. Set `RESTATE_AUTO_REGISTER=false` if you want to disable that behavior.
+The app auto-registers its `/restate` deployment with the Restate server on startup. Set `RESTATE_AUTO_REGISTER=false` to disable this.
 
 ## API
 
-- `POST /api/search`
-- `GET /api/search/{job_id}`
-- `GET /api/search/{job_id}/events`
+- `POST /api/search` — kick off a search job
+- `GET /api/search/{job_id}` — get a snapshot of a search job
+- `GET /api/search/{job_id}/events` — SSE stream of search progress
+- `GET /health` — health check
+- `GET /db` — database/pgvector status
 - `GET /openapi.json`
 
-Example kickoff request:
+Example:
 
 ```bash
 curl -X POST http://localhost:8000/api/search \
@@ -86,7 +76,7 @@ curl -X POST http://localhost:8000/api/search \
 
 ## OpenAPI
 
-Export the committed spec artifacts:
+Export the OpenAPI spec:
 
 ```bash
 uv run python -m backend.export_openapi

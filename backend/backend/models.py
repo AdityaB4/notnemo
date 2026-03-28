@@ -125,6 +125,7 @@ class SearchAcceptedResponse(StrictModel):
     status: Literal["queued"] = "queued"
     snapshot_url: str
     events_url: str
+    cached_from: str | None = None
 
 
 class SearchSnapshotResponse(StrictModel):
@@ -135,6 +136,7 @@ class SearchSnapshotResponse(StrictModel):
     errors: list[JobError] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
+    cached_from: str | None = None
 
 
 class SearchEvent(StrictModel):
@@ -163,6 +165,7 @@ class ExplorerBranchInput(StrictModel):
     candidate_urls: list[str] = Field(default_factory=list)
     limits: SearchLimits
     stream_tinyfish: bool = True
+    trace_parent: str | None = None
 
 
 class BranchSummary(StrictModel):
