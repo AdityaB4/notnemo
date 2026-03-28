@@ -20,7 +20,6 @@ def make_settings() -> Settings:
         openai_api_key=None,
         openai_base_url="https://api.openai.com/v1",
         openai_explorer_model="gpt-4.1-mini",
-        openai_web_search_tool_type="web_search",
         tinyfish_api_key="tinyfish_test_key",
         tinyfish_base_url="https://agent.tinyfish.ai",
         explorer_max_depth=1,

@@ -379,6 +379,7 @@ components:
           - seed
           - enumerated_domain
           - web_search
+          - web_fetch
           - tinyfish
           - sub_explorer
           title: Source Kind

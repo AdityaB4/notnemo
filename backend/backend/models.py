@@ -12,6 +12,7 @@ EventType = Literal[
     "seeds.ready",
     "domains.ready",
     "branch.started",
+    "branch.reasoning_delta",
     "tinyfish.progress",
     "result.item",
     "branch.completed",
@@ -23,6 +24,7 @@ SourceKind = Literal[
     "seed",
     "enumerated_domain",
     "web_search",
+    "web_fetch",
     "tinyfish",
     "sub_explorer",
 ]
@@ -230,6 +232,18 @@ class TinyFishToolResult(StrictModel):
     message: str | None = None
 
 
+class WebFetchToolRequest(StrictModel):
+    url: str
+
+
+class WebFetchToolResult(StrictModel):
+    status: Literal["completed", "error"]
+    url: str
+    html: str = ""
+    truncated: bool = False
+    message: str | None = None
+
+
 class SubExplorerToolRequest(StrictModel):
     focus_query: str
     urls: list[str] = Field(default_factory=list)
@@ -306,6 +320,18 @@ class DomainsReadyEvent(StreamEventBase):
 class BranchStartedEvent(StreamEventBase):
     event_type: Literal["branch.started"] = "branch.started"
     payload: BranchStartedPayload
+
+
+class BranchReasoningDeltaPayload(StrictModel):
+    delta: str
+    output_index: int
+    summary_index: int
+    iteration: int
+
+
+class BranchReasoningDeltaEvent(StreamEventBase):
+    event_type: Literal["branch.reasoning_delta"] = "branch.reasoning_delta"
+    payload: BranchReasoningDeltaPayload
 
 
 class TinyFishProgressEvent(StreamEventBase):

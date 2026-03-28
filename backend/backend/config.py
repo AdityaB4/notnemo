@@ -45,7 +45,6 @@ class Settings:
     openai_api_key: str | None
     openai_base_url: str
     openai_explorer_model: str
-    openai_web_search_tool_type: str
     tinyfish_api_key: str | None
     tinyfish_base_url: str
     explorer_max_depth: int
@@ -77,9 +76,6 @@ def get_settings() -> Settings:
         openai_api_key=os.environ.get("OPENAI_API_KEY"),
         openai_base_url=os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1"),
         openai_explorer_model=os.environ.get("OPENAI_EXPLORER_MODEL", "gpt-5"),
-        openai_web_search_tool_type=os.environ.get(
-            "OPENAI_WEB_SEARCH_TOOL_TYPE", "web_search"
-        ),
         tinyfish_api_key=os.environ.get("TINYFISH_API_KEY"),
         tinyfish_base_url=os.environ.get("TINYFISH_BASE_URL", "https://agent.tinyfish.ai"),
         explorer_max_depth=_env_int("EXPLORER_MAX_DEPTH", 1),
