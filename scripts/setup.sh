@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 # Conductor provides CONDUCTOR_ROOT_PATH pointing to the repo root.
 # The .env.local there is shared across all workspaces.
