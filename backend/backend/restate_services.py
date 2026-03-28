@@ -16,6 +16,8 @@ from backend.db import save_search_job
 from backend.domains import enumerate_candidate_urls
 from backend.embeddings import generate_embedding
 from backend.ingress import RestateIngressClient, RestateIngressError
+import httpx
+
 from backend.models import (
     BranchSummary,
     EventAppendRequest,
@@ -38,6 +40,8 @@ from backend.models import (
     TinyFishExecutionRequest,
     TinyFishToolResult,
     TinyFishTraceEvent,
+    WebFetchToolRequest,
+    WebFetchToolResult,
 )
 from backend.normalize import normalize_query
 from backend.openai_explorer import (
@@ -47,8 +51,8 @@ from backend.openai_explorer import (
     build_initial_input,
     build_response_payload,
     extract_function_calls,
+    has_web_fetch_call,
     parse_branch_outcome,
-    saw_web_search,
 )
 from backend.seeds import MockSeedUrlRepository
 from backend.tinyfish import TinyFishClient, TinyFishError
@@ -59,6 +63,7 @@ logger = logging.getLogger(__name__)
 search_job_state = restate.VirtualObject("SearchJobState")
 explorer_workflow = restate.Workflow("ExplorerWorkflow")
 tinyfish_tasks = restate.Service("TinyFishTasks")
+web_fetch_tasks = restate.Service("WebFetchTasks")
 greeter = restate.Service("Greeter")
 
 
@@ -154,6 +159,43 @@ async def scrape_site(ctx: restate.Context, req: TinyFishExecutionRequest) -> Ti
             heartbeat_task.cancel()
             with suppress(asyncio.CancelledError):
                 await heartbeat_task
+
+
+WEB_FETCH_MAX_CHARS = 50_000
+
+
+@web_fetch_tasks.handler()
+async def fetch_page(ctx: restate.Context, req: WebFetchToolRequest) -> WebFetchToolResult:
+    req = WebFetchToolRequest.model_validate(req)
+    try:
+        async with httpx.AsyncClient(
+            timeout=httpx.Timeout(30.0, connect=10.0),
+            follow_redirects=True,
+        ) as client:
+            resp = await client.get(req.url)
+            resp.raise_for_status()
+            html = resp.text
+            truncated = len(html) > WEB_FETCH_MAX_CHARS
+            if truncated:
+                html = html[:WEB_FETCH_MAX_CHARS]
+            return WebFetchToolResult(
+                status="completed",
+                url=req.url,
+                html=html,
+                truncated=truncated,
+            )
+    except httpx.HTTPError as exc:
+        return WebFetchToolResult(
+            status="error",
+            url=req.url,
+            message=f"HTTP error: {exc}",
+        )
+    except Exception as exc:
+        return WebFetchToolResult(
+            status="error",
+            url=req.url,
+            message=str(exc),
+        )
 
 
 async def _get_state_list(ctx: restate.ObjectSharedContext | restate.ObjectContext, key: str) -> list[Any]:
@@ -542,21 +584,39 @@ async def _run_openai_loop_inner(
             )
 
         previous_response_id = response.get("id")
-        callbacks.runtime.web_search_seen = callbacks.runtime.web_search_seen or saw_web_search(
-            response
-        )
 
         function_calls = extract_function_calls(response)
+        if has_web_fetch_call(function_calls):
+            callbacks.runtime.web_search_seen = True
+
         if function_calls:
             tool_outputs: list[dict[str, Any] | None] = [None] * len(function_calls)
             pending_invocations: list[PendingToolInvocation] = []
 
             for index, tool_call in enumerate(function_calls):
-                if tool_call.name == "tinyfish_scrape":
+                if tool_call.name == "web_fetch":
+                    try:
+                        future = ctx.service_call(
+                            fetch_page,
+                            arg=WebFetchToolRequest(
+                                url=tool_call.arguments["url"],
+                            ),
+                        )
+                        pending_invocations.append(
+                            PendingToolInvocation(
+                                index=index,
+                                name=tool_call.name,
+                                call_id=tool_call.call_id,
+                                future=future,
+                            )
+                        )
+                    except KeyError as exc:
+                        tool_outputs[index] = {"status": "error", "message": str(exc)}
+                elif tool_call.name == "tinyfish_scrape":
                     if not callbacks.runtime.web_search_seen:
                         tool_outputs[index] = {
                             "status": "rejected",
-                            "reason": "web search must be attempted before tinyfish_scrape.",
+                            "reason": "web_fetch must be attempted before tinyfish_scrape.",
                         }
                     else:
                         try:
@@ -612,7 +672,11 @@ async def _run_openai_loop_inner(
 
             for invocation in pending_invocations:
                 try:
-                    if invocation.name == "tinyfish_scrape":
+                    if invocation.name == "web_fetch":
+                        fetch_result = await invocation.future
+                        fetch_result = WebFetchToolResult.model_validate(fetch_result)
+                        output = fetch_result.model_dump(mode="json")
+                    elif invocation.name == "tinyfish_scrape":
                         tool_result = await invocation.future
                         tool_result = TinyFishToolResult.model_validate(tool_result)
                         output = tool_result.model_dump(mode="json")
@@ -832,4 +896,4 @@ async def _run_explorer_inner(
         raise
 
 
-SERVICES = [greeter, search_job_state, explorer_workflow, tinyfish_tasks]
+SERVICES = [greeter, search_job_state, explorer_workflow, tinyfish_tasks, web_fetch_tasks]

@@ -23,6 +23,7 @@ SourceKind = Literal[
     "seed",
     "enumerated_domain",
     "web_search",
+    "web_fetch",
     "tinyfish",
     "sub_explorer",
 ]
@@ -227,6 +228,18 @@ class TinyFishToolResult(StrictModel):
     summary: str = ""
     result_json: Any | None = None
     trace: list[TinyFishTraceEvent] = Field(default_factory=list)
+    message: str | None = None
+
+
+class WebFetchToolRequest(StrictModel):
+    url: str
+
+
+class WebFetchToolResult(StrictModel):
+    status: Literal["completed", "error"]
+    url: str
+    html: str = ""
+    truncated: bool = False
     message: str | None = None
 
 
