@@ -1,0 +1,29 @@
+app = "fiche-backend"
+primary_region = "sin"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  RESTATE_ADMIN_URL = "http://fiche-restate.internal:9070"
+  SELF_URL = "http://fiche-backend.internal:8000"
+
+[[services]]
+  internal_port = 8000
+  protocol = "tcp"
+
+  [[services.ports]]
+    handlers = ["http"]
+    port = 80
+    force_https = true
+
+  [[services.ports]]
+    handlers = ["tls", "http"]
+    port = 443
+
+  [[services.http_checks]]
+    interval = 15000
+    grace_period = "10s"
+    method = "GET"
+    path = "/health"
+    timeout = 5000
